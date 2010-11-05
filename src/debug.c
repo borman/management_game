@@ -22,31 +22,54 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include <time.h>
+#include <sys/time.h>
+
 #include "debug.h"
+
+static void log(const char *prefix, const char *format, va_list args);
+
 
 #define DEBUG_FUNC(name, prefix, color) \
   void name(const char *format, ...) \
   { \
     va_list args; \
     va_start(args, format); \
-    fprintf(stderr, color TERM_BOLD prefix TERM_NORMAL ); \
-    vfprintf(stderr, format, args); \
-    fprintf(stderr, TERM_NORMAL "\n"); \
+    log(color prefix, format, args); \
     va_end(args); \
   }  
 
-DEBUG_FUNC(trace,   "[ Trace ] ", TERM_FG_CYAN)
-DEBUG_FUNC(message, "[Message] ", TERM_FG_WHITE)
-DEBUG_FUNC(warning, "[Warning] ", TERM_FG_RED)
+DEBUG_FUNC(trace,   "[ Trace ]", TERM_FG_CYAN)
+DEBUG_FUNC(message, "[Message]", TERM_FG_WHITE)
+DEBUG_FUNC(warning, "[Warning]", TERM_FG_RED)
 
 void fatal(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
-  fprintf(stderr, TERM_FG_RED TERM_BOLD "[ FATAL ] " TERM_NORMAL );
-  vfprintf(stderr, format, args);
-  fprintf(stderr, TERM_NORMAL "\n");
+  log(TERM_FG_RED "[ FATAL ]", format, args);
   va_end(args);
 
-  exit(1);
+  fflush(stdout);
+  fflush(stderr);
+  abort();
 }
+
+static void log(const char *prefix, const char *format, va_list args)
+{
+#ifdef USE_LOG_TIME_MARKERS
+  struct timeval tv;
+  struct tm *tm;
+
+  gettimeofday(&tv, NULL);
+  tm = localtime(&tv.tv_sec);
+
+  fprintf(stderr, TERM_BOLD TERM_FG_BLACK "%02d:%02d:%02d.%06ld %s " TERM_NORMAL,
+     tm->tm_hour, tm->tm_min, tm->tm_sec, tv.tv_usec, prefix);
+#else
+  fprintf(stderr, TERM_BOLD "%s " TERM_NORMAL, prefix);
+#endif
+  vfprintf(stderr, format, args);
+  fprintf(stderr, "\n");
+}
+

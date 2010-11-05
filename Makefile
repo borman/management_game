@@ -9,7 +9,12 @@ vpath %.h src
 # Default config
 include makefiles/config.mk
 
-DEFINES += USE_LIST_TYPEINFO USE_TERMINAL_COLORS
+# Prefix each log message with current time
+DEFINES += USE_LOG_TIME_MARKERS
+# Do runtime type checks for list operations
+DEFINES += USE_LIST_TYPEINFO
+# Print messages in color
+DEFINES += USE_TERMINAL_COLORS
 
 # Default rules
 include makefiles/rules.mk

@@ -1,0 +1,10 @@
+*~
+*.o
+*.d
+*.swp
+
+build
+
+management-server
+list-test
+core

@@ -1,0 +1,32 @@
+% vim: cindent
+
+Control:
+  on_enter
+  on_event
+    start_game -> set_state(Lobby);
+  on_exit
+
+Lobby:
+  on_enter
+    listen();
+  on_event
+    connection -> accept();
+    greeting -> approve();
+  on_exit
+    close(listen);
+    drop_not_approved();
+    send_announcement();
+    set_state(Round);
+
+Round:
+  on_enter
+    send_round_announcement();
+    n_wclients = n_clients;
+  on_event
+    request -> add_request();
+    ready -> n_wclients--; n_wclients==0 -> finish_loop();
+  on_exit
+    send_round_finished();
+    process_requests();
+    n_clients==0 -> show_game_report(); set_state(Control);
+

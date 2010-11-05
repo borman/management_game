@@ -32,6 +32,7 @@
 #include "socket_loop.h"
 #include "buffer.h"
 #include "debug.h"
+#include "events.h"
 
 typedef struct SocketLoopClient
 {
@@ -45,8 +46,8 @@ static void fill_fd_set(SocketLoop *loop, fd_set *fds, int *pmaxfd);
 static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except);
 static void accept_connection(SocketLoop *loop, int listener_fd);
 static void read_data(SocketLoop *loop, SocketLoopClient *client);
-static SocketLoopClient *new_client(int fd);
-static void delete_client(SocketLoopClient *client);
+static void add_client(SocketLoop *loop, int fd);
+static void delete_client(SocketLoop *loop, SocketLoopClient *client);
 
 volatile sig_atomic_t loop_do_continue = 0;
 
@@ -102,9 +103,7 @@ void socketloop_run(SocketLoop *loop)
     fill_fd_set(loop, &fds_read, &maxfd);
     memcpy(&fds_except, &fds_read, sizeof(fd_set));
 
-    trace("Waiting for events");
     retval = select(maxfd+1, &fds_read, NULL, &fds_except, NULL);
-    trace("Select() returned");
     if (retval != -1)
       check_events(loop, &fds_read, &fds_except);
     else
@@ -170,6 +169,7 @@ static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except)
 
   FOREACH(SocketLoopClient *, client, loop->clients)
   {
+    trace("Check client %d", client->fd);
     if (FD_ISSET(client->fd, fds_except))
       warning("Error condition on client socket %d", client->fd);
     if (FD_ISSET(client->fd, fds_read))
@@ -179,23 +179,17 @@ static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except)
   /* TODO: make a list filter macro */
   {
     List l = loop->clients;
-    List first = NULL;
+    List alive = NULL;
     while (l != NULL)
     {
       SocketLoopClient *client = list_head(l, SocketLoopClient *);
       if (!client->is_active)
-      {
-        delete_client(client);
-        l = list_pop(l);
-      }
+        delete_client(loop, client);
       else
-      {
-        if (first == NULL)
-          first = l;
-        l = l->next;
-      }
+        alive = list_push(alive, SocketLoopClient *, client);
+      l = list_pop(l);
     }
-    loop->clients = first;
+    loop->clients = alive;
   }
 }
 
@@ -206,10 +200,7 @@ static void accept_connection(SocketLoop *loop, int listener_fd)
   if (fd < 0)
     warning("Failed to accept a client connection: %s", strerror(errno));
   else
-  {
-    loop->clients = list_push(loop->clients, SocketLoopClient *, new_client(fd));
-    trace("Accepted client %d", fd);
-  }
+    add_client(loop, fd);
 }
 
 #define READBUFSIZE 1024
@@ -217,16 +208,14 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
 {
   unsigned char readbuf[READBUFSIZE];
   ssize_t retval;
-  trace("Reading data from %d", client->fd);
   while ((retval = recv(client->fd, readbuf, READBUFSIZE, MSG_DONTWAIT)) > 0)
   {
     size_t i;
-    trace("Client %d: received %zd bytes", client->fd, retval);
     for (i=0; i<retval; i++)
     {
       if (readbuf[i]=='\n')
       {
-        trace("Client %d says: %s", client->fd, client->buffer->c_str);
+        event_client_incoming_message(client->fd, client->buffer->c_str);
         buffer_clear(client->buffer);
       }
       else
@@ -235,7 +224,7 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
   }
   if (retval==0)
   {
-    trace("Client %d: recv returned 0 -> closing connection", client->fd);
+    /* Connection closed geacefully */
     client->is_active = 0;
   }
   else if (errno != EAGAIN && errno != EWOULDBLOCK)
@@ -243,20 +232,23 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
 }
 
 
-static SocketLoopClient *new_client(int fd)
+static void add_client(SocketLoop *loop, int fd)
 {
   SocketLoopClient *client = (SocketLoopClient *) malloc(sizeof(SocketLoopClient));
   client->fd = fd;
   client->buffer = buffer_new();
   client->is_active = 1;
-  trace("New client %d", fd);
-  return client;
+  
+  loop->clients = list_push(loop->clients, SocketLoopClient *, client);
+
+  event_client_connected(fd);
 }
 
 
-static void delete_client(SocketLoopClient *client)
+static void delete_client(SocketLoop *loop, SocketLoopClient *client)
 {
-  trace("Deleting client %d", client->fd);
+  event_client_disconnected(client->fd);
+
   buffer_delete(client->buffer);
   close(client->fd);
   free(client);

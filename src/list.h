@@ -54,11 +54,10 @@ typedef ListNode *List;
 
 #define FOREACH(type, var, list) \
 { \
-  type var; \
   List _list = list; \
   while (_list != NULL) \
   { \
-    var = list_head(list, type);
+    type var = list_head(_list, type);
 
 #define FOREACH_END \
     _list = _list->next; \

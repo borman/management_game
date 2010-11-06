@@ -18,28 +18,21 @@
  */
 
 
-#ifndef SOCKET_LOOP_H
-#define SOCKET_LOOP_H
+#ifndef LEXER_H
+#define LEXER_H
 
 #include "list.h"
+#include "buffer.h"
 
-typedef struct SocketLoop
+typedef struct TokenList
 {
-  List listeners;
-  List clients;
-  int do_continue;
-} SocketLoop;
+  Buffer *buf;
+  List tokens;
+} TokenList;
 
-SocketLoop *socketloop_new();
-void socketloop_delete(SocketLoop *loop);
+TokenList *lexer_split(const char *src);
 
-void socketloop_listen(SocketLoop *loop, int fd);
-void socketloop_close_listeners(SocketLoop *loop);
+void lexer_delete(TokenList *tl);
 
-void socketloop_run(SocketLoop *loop);
-void socketloop_stop();
+#endif /* LEXER_H */
 
-void socketloop_send(int client, const char *command);
-void socketloop_drop_client(int client);
-
-#endif /* SOCKET_LOOP_H */

@@ -34,6 +34,9 @@
 #include "debug.h"
 #include "events.h"
 
+/* Socket read buffer size */
+#define READBUFSIZE 1024
+
 typedef struct SocketLoopClient
 {
   int fd;
@@ -49,6 +52,8 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client);
 static void add_client(SocketLoop *loop, int fd);
 static void delete_client(SocketLoop *loop, SocketLoopClient *client);
 
+
+/* Condition to break current loop */
 volatile sig_atomic_t loop_do_continue = 0;
 
 
@@ -129,6 +134,20 @@ void socketloop_stop()
 }
 
 
+void socketloop_send(int client, const char *command)
+{
+  /* TODO */
+  trace("Send %d <- %s", client, command);
+}
+
+
+void socketloop_drop_client(int client)
+{
+  /* TODO */
+  trace("Drop client %d", client);
+}
+
+
 
 /** 
  * Internal subroutines 
@@ -169,7 +188,6 @@ static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except)
 
   FOREACH(SocketLoopClient *, client, loop->clients)
   {
-    trace("Check client %d", client->fd);
     if (FD_ISSET(client->fd, fds_except))
       warning("Error condition on client socket %d", client->fd);
     if (FD_ISSET(client->fd, fds_read))
@@ -203,7 +221,6 @@ static void accept_connection(SocketLoop *loop, int listener_fd)
     add_client(loop, fd);
 }
 
-#define READBUFSIZE 1024
 static void read_data(SocketLoop *loop, SocketLoopClient *client)
 {
   unsigned char readbuf[READBUFSIZE];

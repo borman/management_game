@@ -30,18 +30,38 @@
 #include <sys/select.h>
 
 #include "socket_loop.h"
+#include "list.h"
 #include "buffer.h"
 #include "debug.h"
 #include "events.h"
+#include "smq.h"
 
 /* Socket read buffer size */
 #define READBUFSIZE 1024
 
+struct SocketLoop
+{
+  List listeners;
+  List clients;
+  volatile sig_atomic_t do_continue;
+};
+
 typedef struct SocketLoopClient
 {
+  /* Client connection descriptor */
   int fd;
+
+  /* Read buffer */
   Buffer *buffer;
-  int is_active;
+
+  /* Send buffer */
+  SocketMessageQueue *smq;
+
+  /* Flags */
+  /* Dead connection: will be deleted */
+  int is_active:1; 
+  /* About to close connection; becomes dead after buffer is flushed */
+  int is_dropped:1; 
 } SocketLoopClient;
 
 
@@ -51,10 +71,8 @@ static void accept_connection(SocketLoop *loop, int listener_fd);
 static void read_data(SocketLoop *loop, SocketLoopClient *client);
 static void add_client(SocketLoop *loop, int fd);
 static void delete_client(SocketLoop *loop, SocketLoopClient *client);
+static SocketLoopClient *find_client(SocketLoop *loop, int fd);
 
-
-/* Condition to break current loop */
-volatile sig_atomic_t loop_do_continue = 0;
 
 
 SocketLoop *socketloop_new()
@@ -96,8 +114,8 @@ void socketloop_close_listeners(SocketLoop *loop)
 
 void socketloop_run(SocketLoop *loop)
 {
-  loop_do_continue = 1;
-  while (loop_do_continue)
+  loop->do_continue = 1;
+  while (loop->do_continue)
   {
     fd_set fds_read;
     fd_set fds_except;
@@ -128,20 +146,23 @@ void socketloop_run(SocketLoop *loop)
 }
 
 
-void socketloop_stop()
+void socketloop_stop(SocketLoop *loop)
 {
-  loop_do_continue = 0;
+  loop->do_continue = 0;
 }
 
 
-void socketloop_send(int client, const char *command)
+void socketloop_send(SocketLoop *loop, int client_fd, const char *command)
 {
   /* TODO */
-  trace("Send %d <- %s", client, command);
+  SocketLoopClient *client = find_client(loop, client_fd);
+  trace("Send %d <- %s", client_fd, command);
+  smq_enqueue(client->smq, command);
+  smq_try_send(client->smq, client->fd);
 }
 
 
-void socketloop_drop_client(int client)
+void socketloop_drop_client(SocketLoop *loop, int client)
 {
   /* TODO */
   trace("Drop client %d", client);
@@ -232,7 +253,7 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
     {
       if (readbuf[i]=='\n')
       {
-        event_client_incoming_message(client->fd, client->buffer->c_str);
+        event_client_incoming_message(loop, client->fd, client->buffer->c_str);
         buffer_clear(client->buffer);
       }
       else
@@ -252,22 +273,43 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
 static void add_client(SocketLoop *loop, int fd)
 {
   SocketLoopClient *client = (SocketLoopClient *) malloc(sizeof(SocketLoopClient));
+
   client->fd = fd;
+
   client->buffer = buffer_new();
+
+  client->smq = smq_new();
+
   client->is_active = 1;
+  client->is_dropped = 0;
   
   loop->clients = list_push(loop->clients, SocketLoopClient *, client);
 
-  event_client_connected(fd);
+  event_client_connected(loop, fd);
 }
 
 
 static void delete_client(SocketLoop *loop, SocketLoopClient *client)
 {
-  event_client_disconnected(client->fd);
+  event_client_disconnected(loop, client->fd);
 
   buffer_delete(client->buffer);
+  smq_delete(client->smq);
+
   close(client->fd);
   free(client);
 }
+
+static SocketLoopClient *find_client(SocketLoop *loop, int fd)
+{
+  FOREACH(SocketLoopClient *, client, loop->clients)
+  {
+    if (client->fd==fd)
+      return client;
+  } FOREACH_END
+
+  fatal("Nonexistent client %d requested", fd);
+  return NULL;
+}
+
 

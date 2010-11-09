@@ -35,21 +35,28 @@
 static void listen_tcp(SocketLoop *loop);
 static void terminate_handler(int);
 
+
+SocketLoop *main_loop;
+
+
 int main(int argc, char **argv)
 {
-  SocketLoop *loop;
-
   message("Server started");
-  loop = socketloop_new();
+  main_loop = socketloop_new();
+
   signal(SIGINT, terminate_handler);
   signal(SIGHUP, terminate_handler);
   signal(SIGTERM, terminate_handler);
   
-  listen_tcp(loop);
-  socketloop_run(loop);
-  socketloop_close_listeners(loop);
+  listen_tcp(main_loop);
+  socketloop_run(main_loop);
+  socketloop_close_listeners(main_loop);
+
+  signal(SIGINT, SIG_DFL);
+  signal(SIGHUP, SIG_DFL);
+  signal(SIGTERM, SIG_DFL);
   
-  socketloop_delete(loop);
+  socketloop_delete(main_loop);
   message("Server shutdown");
   return 0;
 }
@@ -83,7 +90,7 @@ static void listen_tcp(SocketLoop *loop)
 
 static void terminate_handler(int sig)
 {
-  socketloop_stop();
+  socketloop_stop(main_loop);
   signal(sig, terminate_handler);
 }
 

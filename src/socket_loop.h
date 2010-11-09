@@ -21,14 +21,7 @@
 #ifndef SOCKET_LOOP_H
 #define SOCKET_LOOP_H
 
-#include "list.h"
-
-typedef struct SocketLoop
-{
-  List listeners;
-  List clients;
-  int do_continue;
-} SocketLoop;
+typedef struct SocketLoop SocketLoop;
 
 SocketLoop *socketloop_new();
 void socketloop_delete(SocketLoop *loop);
@@ -37,9 +30,9 @@ void socketloop_listen(SocketLoop *loop, int fd);
 void socketloop_close_listeners(SocketLoop *loop);
 
 void socketloop_run(SocketLoop *loop);
-void socketloop_stop();
+void socketloop_stop(SocketLoop *loop);
 
-void socketloop_send(int client, const char *command);
-void socketloop_drop_client(int client);
+void socketloop_send(SocketLoop *loop, int client, const char *command);
+void socketloop_drop_client(SocketLoop *loop, int client);
 
 #endif /* SOCKET_LOOP_H */

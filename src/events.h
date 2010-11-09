@@ -1,8 +1,10 @@
 #ifndef EVENTS_H
 #define EVENTS_H
 
-void event_client_connected(int client);
-void event_client_incoming_message(int client, const char *message);
-void event_client_disconnected(int client);
+#include "socket_loop.h"
+
+void event_client_connected(SocketLoop *loop, int client);
+void event_client_incoming_message(SocketLoop *loop, int client, const char *message);
+void event_client_disconnected(SocketLoop *loop, int client);
 
 #endif /* EVENTS_H */

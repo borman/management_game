@@ -91,9 +91,7 @@ void socketloop_delete(SocketLoop *loop)
 
 void socketloop_listen(SocketLoop *loop, int fd)
 {
-  int retval;
-
-  if ((retval = listen(fd, 5)) == 0)
+  if (listen(fd, 5) == 0)
     loop->listeners = list_push(loop->listeners, int, fd);
   else
     warning("Failed to listen on %d: %s", fd, strerror(errno));

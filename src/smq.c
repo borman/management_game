@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "smq.h"
 #include "list.h"
@@ -14,6 +17,7 @@ typedef struct Message
 
 struct SocketMessageQueue 
 {
+  size_t current_pos;
   Message *current;
   List queued;
 };
@@ -54,6 +58,34 @@ void smq_enqueue(SocketMessageQueue *smq, const char *message)
 void smq_try_send(SocketMessageQueue *smq, int fd)
 {
   trace("smq_try_send(%d)", fd);
+  while (!smq_is_empty(smq))
+  {
+    while (smq->current != NULL && smq->current_pos < smq->current->size)
+    {
+      /* send */
+      ssize_t delta = send(fd, smq->current->data, smq->current->size - smq->current_pos, MSG_DONTWAIT);
+      if (delta == -1)
+      {
+        trace("send failed: %s", strerror(errno));
+        return;
+      }
+      else
+        smq->current_pos += delta;
+    }
+    if (smq->current != NULL)
+    {
+      /* current sent -> dispose */
+      message_delete(smq->current);
+      smq->current = NULL;
+    } 
+    if (smq->queued != NULL)
+    {
+      /* dequeue */
+      smq->current = list_head(smq->queued, Message *);
+      smq->current_pos = 0;
+      smq->queued = list_pop(smq->queued);
+    }
+  }
 }
 
 

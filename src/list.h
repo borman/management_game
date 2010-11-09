@@ -46,9 +46,11 @@ typedef ListNode *List;
 
 #if defined(USE_LIST_TYPEINFO) 
 # define list_push(list, type, data) (list_push_typed(list, #type, (void *)(data)))
+# define list_push_back(list, type, data) (list_push_back_typed(list, #type, (void *)(data)))
 # define list_head(list, type)       ((type)list_head_typed(list, #type))
 #else
 # define list_push(list, type, data) (list_push_typed(list, NULL, (void *)(data)))
+# define list_push_back(list, type, data) (list_push_back_typed(list, NULL, (void *)(data)))
 # define list_head(list, type)       ((type)list_head_typed(list, NULL))
 #endif
 
@@ -69,6 +71,11 @@ typedef ListNode *List;
  * Returns a new list.
  */
 List list_push_typed(List list, const char *type, void *data);
+/**
+ * Insert a new element after its last element.
+ * Returns a new list.
+ */
+List list_push_back_typed(List list, const char *type, void *data);
 /**
  * Remove list head.
  * Returns a new list.

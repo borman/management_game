@@ -36,6 +36,21 @@ List list_push_typed(List list, const char *type, void *data)
   return new_head;
 }
 
+List list_push_back_typed(List list, const char *type, void *data)
+{
+  List element = list_push_typed(NULL, type, data);
+  if (list==NULL)
+    return element;
+  else
+  {
+    List l = list;
+    while (l->next != NULL)
+      l = l->next;
+    l->next = element;
+    return list;
+  }
+}
+
 List list_pop(List list)
 {
   List head;

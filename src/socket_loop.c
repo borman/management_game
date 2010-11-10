@@ -65,8 +65,10 @@ typedef struct SocketLoopClient
 } SocketLoopClient;
 
 
-static void fill_fd_set(SocketLoop *loop, fd_set *fds, int *pmaxfd);
-static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except);
+static void fill_fd_set(SocketLoop *loop, fd_set *readfds, 
+    fd_set *writefds, int *pmaxfd);
+static void check_events(SocketLoop *loop, fd_set *fds_read, 
+    fd_set *fds_send, fd_set *fds_except);
 static void accept_connection(SocketLoop *loop, int listener_fd);
 static void read_data(SocketLoop *loop, SocketLoopClient *client);
 static void add_client(SocketLoop *loop, int fd);
@@ -117,16 +119,17 @@ void socketloop_run(SocketLoop *loop)
   {
     fd_set fds_read;
     fd_set fds_except;
+    fd_set fds_send;
     int maxfd;
     int retval;
 
     /* Set up fd's for select */
-    fill_fd_set(loop, &fds_read, &maxfd);
+    fill_fd_set(loop, &fds_read, &fds_send, &maxfd);
     memcpy(&fds_except, &fds_read, sizeof(fd_set));
 
-    retval = select(maxfd+1, &fds_read, NULL, &fds_except, NULL);
+    retval = select(maxfd+1, &fds_read, &fds_send, &fds_except, NULL);
     if (retval != -1)
-      check_events(loop, &fds_read, &fds_except);
+      check_events(loop, &fds_read, &fds_send, &fds_except);
     else
     {
       if (errno == EINTR)
@@ -172,21 +175,25 @@ void socketloop_drop_client(SocketLoop *loop, int client)
  * Internal subroutines 
  */
 
-static void fill_fd_set(SocketLoop *loop, fd_set *fds, int *pmaxfd)
+static void fill_fd_set(SocketLoop *loop, fd_set *readfds, 
+    fd_set *writefds, int *pmaxfd)
 {
   int maxfd = 0;
-  FD_ZERO(fds);
+  FD_ZERO(readfds);
+  FD_ZERO(writefds);
 
   FOREACH(int, fd, loop->listeners)
   {
-    FD_SET(fd, fds);
+    FD_SET(fd, readfds);
     if (fd > maxfd)
       maxfd = fd;
   } FOREACH_END
 
   FOREACH(SocketLoopClient *, client, loop->clients)
   {
-    FD_SET(client->fd, fds);
+    FD_SET(client->fd, readfds);
+    if (!smq_is_empty(client->smq))
+      FD_SET(client->fd, writefds);
     if (client->fd > maxfd)
       maxfd = client->fd;
   } FOREACH_END
@@ -195,7 +202,8 @@ static void fill_fd_set(SocketLoop *loop, fd_set *fds, int *pmaxfd)
 }
 
 
-static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except)
+static void check_events(SocketLoop *loop, fd_set *fds_read,
+    fd_set *fds_send, fd_set *fds_except)
 {
   FOREACH(int, fd, loop->listeners)
   {
@@ -211,8 +219,11 @@ static void check_events(SocketLoop *loop, fd_set *fds_read, fd_set *fds_except)
       warning("Error condition on client socket %d", client->fd);
     if (FD_ISSET(client->fd, fds_read))
       read_data(loop, client);
+    if (FD_ISSET(client->fd, fds_send))
+      smq_try_send(client->smq, client->fd);
   } FOREACH_END
 
+  /* delete dead clients */
   /* TODO: make a list filter macro */
   {
     List l = loop->clients;
@@ -260,7 +271,7 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
   }
   if (retval==0)
   {
-    /* Connection closed geacefully */
+    /* Connection closed gracefully */
     client->is_active = 0;
   }
   else if (errno != EAGAIN && errno != EWOULDBLOCK)

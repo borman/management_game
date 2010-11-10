@@ -58,6 +58,7 @@ void smq_enqueue(SocketMessageQueue *smq, const char *message)
 void smq_try_send(SocketMessageQueue *smq, int fd)
 {
   trace("smq_try_send(%d)", fd);
+  trace("current==\"%s\", queued: %zu", smq->current, list_size(smq->queued));
   while (!smq_is_empty(smq))
   {
     while (smq->current != NULL && smq->current_pos < smq->current->size)
@@ -100,7 +101,7 @@ static Message *message_new(const char *str)
 {
   Message *msg = (Message *) malloc(sizeof(Message));
   const size_t size = strlen(str) + 1;
-  char *data = malloc(msg->size+1);
+  char *data = malloc(size+1);
   strcpy(data, str);
   data[size-1] = '\n';
   data[size] = '\0';

@@ -57,6 +57,9 @@ typedef struct SocketLoopClient
   /* Send buffer */
   SocketMessageQueue *smq;
 
+  /* Some user-supplied data */
+  void *user_data;
+
   /* Flags */
   /* Dead connection: will be deleted */
   int is_active:1; 
@@ -155,7 +158,6 @@ void socketloop_stop(SocketLoop *loop)
 
 void socketloop_send(SocketLoop *loop, int client_fd, const char *command)
 {
-  /* TODO */
   SocketLoopClient *client = find_client(loop, client_fd);
   trace("Send %d <- %s", client_fd, command);
   smq_enqueue(client->smq, command);
@@ -163,10 +165,25 @@ void socketloop_send(SocketLoop *loop, int client_fd, const char *command)
 }
 
 
-void socketloop_drop_client(SocketLoop *loop, int client)
+void socketloop_drop_client(SocketLoop *loop, int client_fd)
 {
-  /* TODO */
-  trace("Drop client %d", client);
+  SocketLoopClient *client = find_client(loop, client_fd);
+  trace("Drop client %d", client_fd);
+  client->is_dropped = 1;
+  if (-1 == shutdown(client->fd, SHUT_RD))
+    warning("Failed to shutdown recv on %d: %s", client->fd, strerror(errno));
+}
+
+
+void socketloop_set_data(SocketLoop *loop, void *data)
+{
+  loop->user_data = data;
+}
+
+
+void *socketloop_get_data(SocketLoop *loop)
+{
+  return loop->user_data;
 }
 
 
@@ -231,7 +248,8 @@ static void check_events(SocketLoop *loop, fd_set *fds_read,
     while (l != NULL)
     {
       SocketLoopClient *client = list_head(l, SocketLoopClient *);
-      if (!client->is_active)
+      if (!client->is_active 
+          || (client->is_dropped && smq_is_empty(client->smq)))
         delete_client(loop, client);
       else
         alive = list_push(alive, SocketLoopClient *, client);

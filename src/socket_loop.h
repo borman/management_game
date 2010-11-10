@@ -35,4 +35,6 @@ void socketloop_stop(SocketLoop *loop);
 void socketloop_send(SocketLoop *loop, int client, const char *command);
 void socketloop_drop_client(SocketLoop *loop, int client);
 
+void socketloop_set_data(SocketLoop *loop, void *data);
+void *socketloop_get_data(SocketLoop *loop);
 #endif /* SOCKET_LOOP_H */

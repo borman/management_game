@@ -1,7 +1,7 @@
 /*
  * Copyright 2010, Mikhail "borman" Borisov <borisov.mikhail@gmail.com>
  *
- * This file is part of borman's model management game server.
+ * This file is part of borman's management game server.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

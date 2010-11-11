@@ -23,6 +23,7 @@
 #include "socket_loop.h"
 #include "list.h"
 #include "lexer.h"
+#include "fsm.h"
 
 
 static void event_client_incoming_command(SocketLoop *loop, int client, const char *command, List args);
@@ -30,7 +31,9 @@ static void event_client_incoming_command(SocketLoop *loop, int client, const ch
 
 void event_client_connected(SocketLoop *loop, int client)
 {
+  FSMEvent event = {EV_CONNECT, client};
   trace("EVENT: %d: connected", client);
+  fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
 
@@ -57,15 +60,18 @@ void event_client_incoming_message(SocketLoop *loop, int client, const char *mes
 
 void event_client_disconnected(SocketLoop *loop, int client)
 {
+  FSMEvent event = {EV_DISCONNECT, client};
   trace("EVENT: %d: disconnected", client);
+  fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
 
 
-static void event_client_incoming_command(SocketLoop *loop, int client, const char *command, List args)
+static void event_client_incoming_command(SocketLoop *loop, int client, 
+    const char *command, List args)
 {
+  FSMEvent event = {EV_COMMAND, client, command, args};
   trace("EVENT: %d: %s", client, command);
-  trace("Echoing back: %s", command);
-  socketloop_send(loop, client, command);
+  fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 

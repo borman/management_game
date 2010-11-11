@@ -1,11 +1,5 @@
 % vim: cindent
 
-Control:
-  on_enter
-  on_event
-    start_game -> set_state(Lobby);
-  on_exit
-
 Lobby:
   on_enter
     listen();
@@ -28,5 +22,5 @@ Round:
   on_exit
     send_round_finished();
     process_requests();
-    n_clients==0 -> show_game_report(); set_state(Control);
+    n_clients==0 -> show_game_report(); set_state(Lobby);
 

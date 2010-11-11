@@ -41,9 +41,17 @@
 
 struct SocketLoop
 {
+  /* Listening sockets */
   List listeners;
+  
+  /* Connection sockets */
   List clients;
+
+  /* A flag whether to continue looping */
   volatile sig_atomic_t do_continue;
+
+  /* Some user-supplied data */
+  void *user_data;
 };
 
 typedef struct SocketLoopClient
@@ -56,9 +64,6 @@ typedef struct SocketLoopClient
 
   /* Send buffer */
   SocketMessageQueue *smq;
-
-  /* Some user-supplied data */
-  void *user_data;
 
   /* Flags */
   /* Dead connection: will be deleted */

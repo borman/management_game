@@ -29,6 +29,7 @@
 
 #include "socket_loop.h"
 #include "debug.h"
+#include "server_fsm.h"
 
 #define TCP_IN_PORT 8982
 
@@ -41,6 +42,8 @@ SocketLoop *main_loop;
 
 int main(int argc, char **argv)
 {
+  FSM *server_fsm;
+
   message("Server started");
   main_loop = socketloop_new();
 
@@ -48,6 +51,9 @@ int main(int argc, char **argv)
   signal(SIGHUP, terminate_handler);
   signal(SIGTERM, terminate_handler);
   
+  server_fsm = server_fsm_new(main_loop);
+  socketloop_set_data(main_loop, server_fsm);
+
   listen_tcp(main_loop);
   socketloop_run(main_loop);
   socketloop_close_listeners(main_loop);
@@ -57,6 +63,7 @@ int main(int argc, char **argv)
   signal(SIGTERM, SIG_DFL);
   
   socketloop_delete(main_loop);
+  server_fsm_delete(server_fsm);
   message("Server shutdown");
   return 0;
 }

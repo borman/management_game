@@ -164,7 +164,6 @@ void socketloop_stop(SocketLoop *loop)
 void socketloop_send(SocketLoop *loop, int client_fd, const char *command)
 {
   SocketLoopClient *client = find_client(loop, client_fd);
-  trace("Send %d <- %s", client_fd, command);
   smq_enqueue(client->smq, command);
   smq_try_send(client->smq, client->fd);
 }
@@ -340,7 +339,7 @@ static SocketLoopClient *find_client(SocketLoop *loop, int fd)
       return client;
   } FOREACH_END
 
-  fatal("Nonexistent client %d requested", fd);
+  fatal("socket_loop: Nonexistent client requested: %d", fd);
   return NULL;
 }
 

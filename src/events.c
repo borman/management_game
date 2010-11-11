@@ -32,7 +32,6 @@ static void event_client_incoming_command(SocketLoop *loop, int client, const ch
 void event_client_connected(SocketLoop *loop, int client)
 {
   FSMEvent event = {EV_CONNECT, client};
-  trace("EVENT: %d: connected", client);
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
@@ -40,11 +39,10 @@ void event_client_connected(SocketLoop *loop, int client)
 void event_client_incoming_message(SocketLoop *loop, int client, const char *message)
 {
   TokenList *tl;
-  trace("EVENT: %d: incoming: %s", client, message);
   tl = lexer_split(message);
   if (tl == NULL)
   {
-    trace("Bad message");
+    trace("Bad message from %d", client);
     socketloop_send(loop, client, "error \"Bad syntax\"");
     socketloop_drop_client(loop, client);
   }
@@ -61,7 +59,6 @@ void event_client_incoming_message(SocketLoop *loop, int client, const char *mes
 void event_client_disconnected(SocketLoop *loop, int client)
 {
   FSMEvent event = {EV_DISCONNECT, client};
-  trace("EVENT: %d: disconnected", client);
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
@@ -71,7 +68,6 @@ static void event_client_incoming_command(SocketLoop *loop, int client,
     const char *command, List args)
 {
   FSMEvent event = {EV_COMMAND, client, command, args};
-  trace("EVENT: %d: %s", client, command);
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 

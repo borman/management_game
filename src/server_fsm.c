@@ -166,8 +166,8 @@ static ClientData *find_client(ServerData *d, int fd)
   {
     if (client->fd == fd)
       return client;
-  } FOREACH_END
-  fatal("server_fsm: Nonexistent client requested: %d", client);
+  } FOREACH_END;
+  fatal("server_fsm: Nonexistent client requested: %d", fd);
   return NULL;
 }
 

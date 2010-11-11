@@ -63,7 +63,7 @@ void smq_delete(SocketMessageQueue *smq)
   FOREACH(Message *, msg, smq->queued)
   {
     message_delete(msg);
-  } FOREACH_END
+  } FOREACH_END;
   list_delete(smq->queued);
   free(smq);
 }

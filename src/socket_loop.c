@@ -114,7 +114,7 @@ void socketloop_close_listeners(SocketLoop *loop)
   {
     if (0 != close(fd))
       warning("Failed to close %d: %s", fd, strerror(errno));
-  } FOREACH_END
+  } FOREACH_END;
   list_delete(loop->listeners);
   loop->listeners = NULL;
 }
@@ -208,7 +208,7 @@ static void fill_fd_set(SocketLoop *loop, fd_set *readfds,
     FD_SET(fd, readfds);
     if (fd > maxfd)
       maxfd = fd;
-  } FOREACH_END
+  } FOREACH_END;
 
   FOREACH(SocketLoopClient *, client, loop->clients)
   {
@@ -217,7 +217,7 @@ static void fill_fd_set(SocketLoop *loop, fd_set *readfds,
       FD_SET(client->fd, writefds);
     if (client->fd > maxfd)
       maxfd = client->fd;
-  } FOREACH_END
+  } FOREACH_END;
 
   *pmaxfd = maxfd;
 }
@@ -232,7 +232,7 @@ static void check_events(SocketLoop *loop, fd_set *fds_read,
       warning("Error condition on listening socket %d", fd);
     if (FD_ISSET(fd, fds_read))
       accept_connection(loop, fd);
-  } FOREACH_END
+  } FOREACH_END;
 
   FOREACH(SocketLoopClient *, client, loop->clients)
   {
@@ -242,25 +242,16 @@ static void check_events(SocketLoop *loop, fd_set *fds_read,
       read_data(loop, client);
     if (FD_ISSET(client->fd, fds_send))
       smq_try_send(client->smq, client->fd);
-  } FOREACH_END
+  } FOREACH_END;
 
   /* delete dead clients */
-  /* TODO: make a list filter macro */
-  {
-    List l = loop->clients;
-    List alive = NULL;
-    while (l != NULL)
-    {
-      SocketLoopClient *client = list_head(l, SocketLoopClient *);
-      if (!client->is_active 
-          || (client->is_dropped && smq_is_empty(client->smq)))
-        delete_client(loop, client);
-      else
-        alive = list_push(alive, SocketLoopClient *, client);
-      l = list_pop(l);
-    }
-    loop->clients = alive;
-  }
+  FILTER(loop->clients, 
+      SocketLoopClient *, client,
+      /* predicate */
+      (client->is_active && 
+       !(client->is_dropped && smq_is_empty(client->smq))),
+      /* destructor */
+      delete_client(loop, client));
 }
 
 
@@ -337,7 +328,7 @@ static SocketLoopClient *find_client(SocketLoop *loop, int fd)
   {
     if (client->fd==fd)
       return client;
-  } FOREACH_END
+  } FOREACH_END;
 
   fatal("socket_loop: Nonexistent client requested: %d", fd);
   return NULL;

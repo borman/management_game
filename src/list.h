@@ -55,6 +55,7 @@ typedef ListNode *List;
 #endif
 
 #define FOREACH(type, var, list) \
+do \
 { \
   List _list = list; \
   while (_list != NULL) \
@@ -64,7 +65,33 @@ typedef ListNode *List;
 #define FOREACH_END \
     _list = _list->next; \
   } \
-}
+} while (0)
+
+
+#define FILTER(_list, _type, _var, _predicate, _destr) \
+do \
+{ \
+  List _root; \
+  List _l = _list; \
+  List *_link = &_root; \
+  while (_l != NULL) \
+  { \
+    _type _var = list_head(_l, _type); \
+    if ( _predicate ) \
+    { \
+      *_link = _l; \
+      _link = &_l->next; \
+      _l = _l->next; \
+    } \
+    else \
+    { \
+      _destr; \
+      _l = list_pop(_l); \
+    } \
+  } \
+  *_link = NULL; \
+  _list = _root; \
+} while (0)
 
 /**
  * Insert a new element before list head.

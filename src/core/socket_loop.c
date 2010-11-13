@@ -69,9 +69,9 @@ typedef struct SocketLoopClient
 
   /* Flags */
   /* Dead connection: will be deleted */
-  int is_active:1; 
+  unsigned int is_active:1; 
   /* About to close connection; becomes dead after buffer is flushed */
-  int is_dropped:1; 
+  unsigned int is_dropped:1; 
 } SocketLoopClient;
 
 
@@ -273,7 +273,7 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
   ssize_t retval;
   while ((retval = recv(client->fd, readbuf, READBUFSIZE, MSG_DONTWAIT)) > 0)
   {
-    size_t i;
+    ssize_t i;
     for (i=0; i<retval; i++)
     {
       if (readbuf[i]=='\n')

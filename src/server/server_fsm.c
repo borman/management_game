@@ -57,9 +57,9 @@ typedef struct ServerData
 
   /* whether to start the next round automatically without waiting 
    * for a supervisor's permission */
-  int continuous_game:1;
+  unsigned int continuous_game:1;
   /* whether the game is ending because abort was requested */
-  int abort_game:1;
+  unsigned int abort_game:1;
 } ServerData;
 
 
@@ -119,14 +119,13 @@ static const struct FSMState server_states[] =
     round_on_exit
   }
 };
-static const unsigned int n_server_states = 
-  sizeof(server_states)/sizeof(struct FSMState);
 
 static const FSM server_dummy = 
 {
   "ManagementServer",
-  n_server_states,
-  server_states
+  sizeof(server_states)/sizeof(struct FSMState),
+  server_states,
+  NULL, 0, 0, 0
 };
 
 
@@ -225,7 +224,10 @@ static void on_command(FSM *fsm, FSMEvent *event)
 
 static void lobby_on_enter(FSM *fsm)
 {
+  (void)fsm;
+  /*
   ServerData *d = (ServerData *) fsm->data;
+  */
 }
 
 
@@ -277,12 +279,18 @@ static void before_round_on_exit(FSM *fsm)
 
 static void round_on_enter(FSM *fsm)
 {
+  (void)fsm;
+  /*
   ServerData *d = (ServerData *) fsm->data;
+  */
 }
 
 static void round_on_exit(FSM *fsm)
 {
+  (void)fsm;
+  /*
   ServerData *d = (ServerData *) fsm->data;
+  */
 }
 
 

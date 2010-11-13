@@ -27,7 +27,7 @@
 
 #include "core/log.h"
 
-static void log(const char *prefix, const char *format, va_list args);
+static void print_log(const char *prefix, const char *format, va_list args);
 
 
 #define DEBUG_FUNC(name, prefix, color) \
@@ -35,7 +35,7 @@ static void log(const char *prefix, const char *format, va_list args);
   { \
     va_list args; \
     va_start(args, format); \
-    log(color prefix, format, args); \
+    print_log(color prefix, format, args); \
     va_end(args); \
   }  
 
@@ -47,7 +47,7 @@ void fatal(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
-  log(TERM_FG_RED "[ FATAL ]", format, args);
+  print_log(TERM_FG_RED "[ FATAL ]", format, args);
   va_end(args);
 
   fflush(stdout);
@@ -55,7 +55,7 @@ void fatal(const char *format, ...)
   abort();
 }
 
-static void log(const char *prefix, const char *format, va_list args)
+static void print_log(const char *prefix, const char *format, va_list args)
 {
 #ifdef USE_LOG_TIME_MARKERS
   struct timeval tv;

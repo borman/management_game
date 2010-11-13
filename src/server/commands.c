@@ -46,7 +46,7 @@ const struct CommandDescription
   {CMD_PRODUCE,     "produce",     CL_IN_GAME},
   {CMD_ROUND_READY, "round_ready", CL_IN_GAME}
 };
-const int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
+const unsigned int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 
 
 enum Command command_resolve(enum ClientState client_state, const char *cmd_str)

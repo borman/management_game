@@ -51,7 +51,7 @@ typedef struct FSM
   /* Current state */
   int state;
   int next_state;
-  int loop_finished:1;
+  unsigned int loop_finished:1;
 } FSM;
 
 struct FSMState

@@ -22,6 +22,7 @@
 #define LIST_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 /**
  * Lists module.
@@ -36,21 +37,24 @@
  * TODO: Document list typeinfo management
  */
 
+/* This type is supposed to be able to store data of any scalar type */
+typedef uintmax_t ListItem;
+
 typedef struct ListNode
 {
-  void *data;
+  ListItem data;
   const char *type;
   struct ListNode *next;
 } ListNode;
 typedef ListNode *List;
 
 #if defined(USE_LIST_TYPEINFO) 
-# define list_push(list, type, data) (list_push_typed(list, #type, (void *)(data)))
-# define list_push_back(list, type, data) (list_push_back_typed(list, #type, (void *)(data)))
+# define list_push(list, type, data) (list_push_typed(list, #type, (ListItem)(data)))
+# define list_push_back(list, type, data) (list_push_back_typed(list, #type, (ListItem)(data)))
 # define list_head(list, type)       ((type)list_head_typed(list, #type))
 #else
-# define list_push(list, type, data) (list_push_typed(list, NULL, (void *)(data)))
-# define list_push_back(list, type, data) (list_push_back_typed(list, NULL, (void *)(data)))
+# define list_push(list, type, data) (list_push_typed(list, NULL, (ListItem)(data)))
+# define list_push_back(list, type, data) (list_push_back_typed(list, NULL, (ListItem)(data)))
 # define list_head(list, type)       ((type)list_head_typed(list, NULL))
 #endif
 
@@ -97,12 +101,12 @@ do \
  * Insert a new element before list head.
  * Returns a new list.
  */
-List list_push_typed(List list, const char *type, void *data);
+List list_push_typed(List list, const char *type, ListItem data);
 /**
  * Insert a new element after its last element.
  * Returns a new list.
  */
-List list_push_back_typed(List list, const char *type, void *data);
+List list_push_back_typed(List list, const char *type, ListItem data);
 /**
  * Remove list head.
  * Returns a new list.
@@ -117,7 +121,7 @@ List list_reverse(List list);
 /** 
  * Extract list's head.
  */
-void *list_head_typed(List list, const char *type);
+ListItem list_head_typed(List list, const char *type);
 
 /** 
  * Free memory used by this list.

@@ -53,7 +53,7 @@ const SocketLoopEventHandler event_handler =
 };
 
 
-int main(int argc, char **argv)
+int main()
 {
   FSM *server_fsm;
 
@@ -121,7 +121,9 @@ static void terminate_handler(int sig)
 
 static void on_client_connect(SocketLoop *loop, int client)
 {
-  FSMEvent event = {EV_CONNECT, client};
+  FSMEvent event;
+  event.type = EV_CONNECT;
+  event.fd = client;
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
@@ -140,7 +142,11 @@ static void on_incoming_message(SocketLoop *loop, int client, const char *messag
   {
     const char *command = list_head(tl->tokens, char *);
     List args = tl->tokens->next;
-    FSMEvent event = {EV_COMMAND, client, command, args};
+    FSMEvent event;
+    event.type = EV_COMMAND;
+    event.fd = client;
+    event.command = command;
+    event.command_args = args;
     
     fsm_event((FSM *) socketloop_get_data(loop), &event);
     lexer_delete(tl);
@@ -150,6 +156,8 @@ static void on_incoming_message(SocketLoop *loop, int client, const char *messag
 
 static void on_client_disconnect(SocketLoop *loop, int client)
 {
-  FSMEvent event = {EV_DISCONNECT, client};
+  FSMEvent event;
+  event.type = EV_DISCONNECT;
+  event.fd = client;
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }

@@ -25,10 +25,10 @@
 #include "core/list.h"
 #include "core/log.h"
 
-static List list_node_alloc(void *default_data);
+static List list_node_alloc(ListItem default_data);
 static void list_node_free(List node);
 
-List list_push_typed(List list, const char *type, void *data)
+List list_push_typed(List list, const char *type, ListItem data)
 {
   List new_head = list_node_alloc(data);
   new_head->type = type;
@@ -36,7 +36,7 @@ List list_push_typed(List list, const char *type, void *data)
   return new_head;
 }
 
-List list_push_back_typed(List list, const char *type, void *data)
+List list_push_back_typed(List list, const char *type, ListItem data)
 {
   List element = list_push_typed(NULL, type, data);
   if (list==NULL)
@@ -77,7 +77,7 @@ List list_reverse(List list)
 }
 
 
-void *list_head_typed(List list, const char *type)
+ListItem list_head_typed(List list, const char *type)
 {
   assert(list != NULL);
 #ifdef USE_LIST_TYPEINFO
@@ -115,7 +115,7 @@ size_t list_size(List list)
  * Node allocation
  */
 
-static List list_node_alloc(void *default_data)
+static List list_node_alloc(ListItem default_data)
 {
   List node = (List) malloc(sizeof(ListNode));
 

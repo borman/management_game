@@ -22,8 +22,14 @@
 #define SOCKET_LOOP_H
 
 typedef struct SocketLoop SocketLoop;
+typedef struct SocketLoopEventHandler
+{
+  void (*on_client_connect)(SocketLoop *loop, int client);
+  void (*on_incoming_message)(SocketLoop *loop, int client, const char *message);
+  void (*on_client_disconnect)(SocketLoop *loop, int client);
+} SocketLoopEventHandler;
 
-SocketLoop *socketloop_new();
+SocketLoop *socketloop_new(const SocketLoopEventHandler *handler);
 void socketloop_delete(SocketLoop *loop);
 
 void socketloop_listen(SocketLoop *loop, int fd);

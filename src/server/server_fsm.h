@@ -21,8 +21,8 @@
 #ifndef SERVER_FSM_H
 #define SERVER_FSM_H
 
-#include "fsm.h"
-#include "socket_loop.h"
+#include "core/fsm.h"
+#include "core/socket_loop.h"
 
 enum ClientState
 {

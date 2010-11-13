@@ -21,8 +21,8 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#include "list.h"
-#include "buffer.h"
+#include "core/list.h"
+#include "core/buffer.h"
 
 typedef struct TokenList
 {

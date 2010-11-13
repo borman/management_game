@@ -1,5 +1,5 @@
-#include "fsm.h"
-#include "debug.h"
+#include "core/fsm.h"
+#include "core/log.h"
 
 
 void fsm_init(FSM *fsm, int init_state)

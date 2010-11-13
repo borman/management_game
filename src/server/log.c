@@ -25,7 +25,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "debug.h"
+#include "core/log.h"
 
 static void log(const char *prefix, const char *format, va_list args);
 

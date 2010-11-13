@@ -1,10 +1,12 @@
 # Target description
-SOURCES = $(notdir $(wildcard src/*.c))
+MODULES = core server
+SOURCE_DIRS = $(addprefix src/,$(MODULES))
+SOURCES = $(notdir $(wildcard $(addsuffix /*.c,$(SOURCE_DIRS))))
 TARGET = management-server
 INCLUDEPATH = src
 
-vpath %.c src
-vpath %.h src
+vpath %.c $(SOURCE_DIRS)
+vpath %.h $(SOURCE_DIRS)
 
 # Default config
 include makefiles/config.mk

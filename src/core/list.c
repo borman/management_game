@@ -22,8 +22,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include "list.h"
-#include "debug.h"
+#include "core/list.h"
+#include "core/log.h"
 
 static List list_node_alloc(void *default_data);
 static void list_node_free(List node);

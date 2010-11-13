@@ -18,13 +18,15 @@
  */
 
 
-#ifndef EVENTS_H
-#define EVENTS_H
+#ifndef LOG_H
+#define LOG_H
 
-#include "socket_loop.h"
+#include <stdio.h>
+#include "core/colors.h"
 
-void event_client_connected(SocketLoop *loop, int client);
-void event_client_incoming_message(SocketLoop *loop, int client, const char *message);
-void event_client_disconnected(SocketLoop *loop, int client);
+void trace(const char *format, ...);
+void message(const char *format, ...);
+void warning(const char *format, ...);
+void fatal(const char *format, ...);
 
-#endif /* EVENTS_H */
+#endif /* LOG_H */

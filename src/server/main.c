@@ -27,17 +27,30 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include "socket_loop.h"
-#include "debug.h"
-#include "server_fsm.h"
+#include "core/socket_loop.h"
+#include "core/lexer.h"
+#include "core/log.h"
+#include "server/server_fsm.h"
+
 
 #define TCP_IN_PORT 8982
+
 
 static void listen_tcp(SocketLoop *loop);
 static void terminate_handler(int);
 
+static void on_client_connect(SocketLoop *loop, int client);
+static void on_incoming_message(SocketLoop *loop, int client, const char *message);
+static void on_client_disconnect(SocketLoop *loop, int client);
+
 
 SocketLoop *main_loop;
+const SocketLoopEventHandler event_handler = 
+{
+  on_client_connect,
+  on_incoming_message,
+  on_client_disconnect
+};
 
 
 int main(int argc, char **argv)
@@ -45,7 +58,7 @@ int main(int argc, char **argv)
   FSM *server_fsm;
 
   message("Server started");
-  main_loop = socketloop_new();
+  main_loop = socketloop_new(&event_handler);
 
   signal(SIGINT, terminate_handler);
   signal(SIGHUP, terminate_handler);
@@ -95,9 +108,48 @@ static void listen_tcp(SocketLoop *loop)
 }
 
 
+/* Signal handler */
+
 static void terminate_handler(int sig)
 {
   socketloop_stop(main_loop);
   signal(sig, terminate_handler);
 }
 
+
+/* Socket event handlers */
+
+static void on_client_connect(SocketLoop *loop, int client)
+{
+  FSMEvent event = {EV_CONNECT, client};
+  fsm_event((FSM *) socketloop_get_data(loop), &event);
+}
+
+
+static void on_incoming_message(SocketLoop *loop, int client, const char *message)
+{
+  TokenList *tl;
+  tl = lexer_split(message);
+  if (tl == NULL)
+  {
+    trace("Bad message from %d", client);
+    socketloop_send(loop, client, "error \"Bad syntax\"");
+    socketloop_drop_client(loop, client);
+  }
+  else if (tl->tokens != NULL)
+  {
+    const char *command = list_head(tl->tokens, char *);
+    List args = tl->tokens->next;
+    FSMEvent event = {EV_COMMAND, client, command, args};
+    
+    fsm_event((FSM *) socketloop_get_data(loop), &event);
+    lexer_delete(tl);
+  }
+}
+
+
+static void on_client_disconnect(SocketLoop *loop, int client)
+{
+  FSMEvent event = {EV_DISCONNECT, client};
+  fsm_event((FSM *) socketloop_get_data(loop), &event);
+}

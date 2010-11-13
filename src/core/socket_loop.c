@@ -29,12 +29,11 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 
-#include "socket_loop.h"
-#include "list.h"
-#include "buffer.h"
-#include "debug.h"
-#include "events.h"
-#include "smq.h"
+#include "core/socket_loop.h"
+#include "core/list.h"
+#include "core/buffer.h"
+#include "core/log.h"
+#include "core/smq.h"
 
 /* Socket read buffer size */
 #define READBUFSIZE 1024
@@ -49,6 +48,9 @@ struct SocketLoop
 
   /* A flag whether to continue looping */
   volatile sig_atomic_t do_continue;
+
+  /* Event handler callbacks */
+  const SocketLoopEventHandler *handler;
 
   /* Some user-supplied data */
   void *user_data;
@@ -85,9 +87,10 @@ static SocketLoopClient *find_client(SocketLoop *loop, int fd);
 
 
 
-SocketLoop *socketloop_new()
+SocketLoop *socketloop_new(const SocketLoopEventHandler *handler)
 {
   SocketLoop *loop = (SocketLoop *) calloc(sizeof(SocketLoop), 1);
+  loop->handler = handler;
   return loop;
 }
 
@@ -275,7 +278,7 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
     {
       if (readbuf[i]=='\n')
       {
-        event_client_incoming_message(loop, client->fd, client->buffer->c_str);
+        loop->handler->on_incoming_message(loop, client->fd, client->buffer->c_str);
         buffer_clear(client->buffer);
       }
       else
@@ -307,13 +310,13 @@ static void add_client(SocketLoop *loop, int fd)
   
   loop->clients = list_push(loop->clients, SocketLoopClient *, client);
 
-  event_client_connected(loop, fd);
+  loop->handler->on_client_connect(loop, fd);
 }
 
 
 static void delete_client(SocketLoop *loop, SocketLoopClient *client)
 {
-  event_client_disconnected(loop, client->fd);
+  loop->handler->on_client_disconnect(loop, client->fd);
 
   buffer_delete(client->buffer);
   smq_delete(client->smq);

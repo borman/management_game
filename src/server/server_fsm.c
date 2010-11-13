@@ -23,9 +23,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "server_fsm.h"
-#include "commands.h"
-#include "debug.h"
+#include "core/log.h"
+#include "server/server_fsm.h"
+#include "server/commands.h"
 
 #define MAXREPLYLENGTH 256
 #define MAXNAMELENGTH 30
@@ -206,7 +206,7 @@ static void lobby_on_command(FSM *fsm, FSMEvent *event)
         goto L_BAD_COMMAND;
       socketloop_send(d->loop, client->fd, "message Server \"See ya!\""); 
       socketloop_drop_client(d->loop, client->fd);
-    }
+    } break;
 
     default:
       goto L_BAD_COMMAND;

@@ -20,7 +20,7 @@
 #ifndef FSM_H
 #define FSM_H
 
-#include "list.h"
+#include "core/list.h"
 
 enum FSMEventType
 {

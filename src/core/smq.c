@@ -25,9 +25,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "smq.h"
-#include "list.h"
-#include "debug.h"
+#include "core/smq.h"
+#include "core/list.h"
+#include "core/log.h"
 
 typedef struct Message
 {

@@ -23,7 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "lexer.h"
+#include "core/lexer.h"
 
 /**
  * Command lexer

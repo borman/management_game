@@ -18,35 +18,21 @@
  */
 
 
-#include <string.h>
+#ifndef COMMANDS_H
+#define COMMANDS_H
 
-#include "commands.h"
+#include "server/server_fsm.h"
 
-const struct CommandDescription
+enum Command
 {
-  enum Command code;
-  const char *str;
-  enum ClientState allowed_states;
-} commands[] = 
-{
-  {CMD_IDENTIFY, "identify", CL_CONNECTED},
-  {CMD_READY, "ready", CL_IN_LOBBY},
-  {CMD_NOTREADY, "notready", CL_IN_LOBBY_ACK},
-  {CMD_QUIT, "quit", CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME | CL_SUPERVISOR}
+  CMD_INVALID,
+  CMD_IDENTIFY,
+  CMD_QUIT,
+  CMD_READY,
+  CMD_NOTREADY
 };
-const int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 
+enum Command command_resolve(enum ClientState, const char *cmd_str);
 
-enum Command command_resolve(enum ClientState client_state, const char *cmd_str)
-{
-  unsigned int i;
-  for (i=0; i<n_commands; i++)
-    if (strcmp(cmd_str, commands[i].str) == 0)
-    {
-      if (commands[i].allowed_states & client_state)
-        return commands[i].code;
-      else
-        return CMD_INVALID;
-    }
-  return CMD_INVALID;
-}
+#endif /* COMMANDS_H */
+

@@ -1,10 +1,10 @@
 # Target description
-SOURCES = list.c main.c debug.c
-INCLUDEPATH = ../../src
+SOURCES = list.c main.c log.c
+INCLUDEPATH = ../../src/
 TARGET = list-test
 
-vpath %.c ../../src
-vpath %.h ../../src
+vpath %.c ../../src/core ../../src/server
+vpath %.h ../../src/core 
 
 # Default config
 include ../../makefiles/config.mk

@@ -1,5 +1,5 @@
-#include "list.h"
-#include "debug.h"
+#include "core/list.h"
+#include "core/log.h"
 
 void test_types()
 {

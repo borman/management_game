@@ -17,56 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FSM_H
-#define FSM_H
 
-#include "list.h"
+#ifndef COMMANDS_H
+#define COMMANDS_H
 
-enum FSMEventType
+#include "server_fsm.h"
+
+enum Command
 {
-  EV_CONNECT,
-  EV_COMMAND,
-  EV_DISCONNECT
+  CMD_INVALID,
+  CMD_IDENTIFY,
+  CMD_QUIT,
+  CMD_READY,
+  CMD_NOTREADY
 };
 
-typedef struct FSMEvent 
-{
-  enum FSMEventType type;
-  int fd;
+enum Command command_resolve(enum ClientState, const char *cmd_str);
 
-  const char *command;
-  List command_args;
-} FSMEvent;
-
-typedef struct FSM
-{
-  /* FSM description */
-  const char *name;
-  unsigned int n_states;
-  const struct FSMState *states;
-  
-  /* User data */
-  void *data;
-
-  /* Current state */
-  int state;
-  int next_state;
-  int loop_finished:1;
-} FSM;
-
-struct FSMState
-{
-  const char *name;
-  void (*on_enter)(FSM *);
-  void (*on_event)(FSM *, FSMEvent *);
-  void (*on_exit)(FSM *);
-};
-
-void fsm_init(FSM *fsm, int init_state);
-void fsm_event(FSM *fsm, FSMEvent *event);
-
-void fsm_finish_loop(FSM *fsm);
-void fsm_set_next_state(FSM *fsm, int state);
-
-#endif /* FSM_H */
+#endif /* COMMANDS_H */
 

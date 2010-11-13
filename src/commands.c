@@ -17,56 +17,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FSM_H
-#define FSM_H
 
-#include "list.h"
+#include <string.h>
 
-enum FSMEventType
+#include "commands.h"
+
+const struct CommandDescription
 {
-  EV_CONNECT,
-  EV_COMMAND,
-  EV_DISCONNECT
+  enum Command code;
+  const char *str;
+  enum ClientState allowed_states;
+} commands[] = 
+{
+  {CMD_IDENTIFY, "identify", CL_CONNECTED},
+  {CMD_READY, "ready", CL_IN_LOBBY},
+  {CMD_NOTREADY, "notready", CL_IN_LOBBY_ACK},
+  {CMD_QUIT, "quit", CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME | CL_SUPERVISOR}
 };
+const int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 
-typedef struct FSMEvent 
+
+enum Command command_resolve(enum ClientState client_state, const char *cmd_str)
 {
-  enum FSMEventType type;
-  int fd;
-
-  const char *command;
-  List command_args;
-} FSMEvent;
-
-typedef struct FSM
-{
-  /* FSM description */
-  const char *name;
-  unsigned int n_states;
-  const struct FSMState *states;
-  
-  /* User data */
-  void *data;
-
-  /* Current state */
-  int state;
-  int next_state;
-  int loop_finished:1;
-} FSM;
-
-struct FSMState
-{
-  const char *name;
-  void (*on_enter)(FSM *);
-  void (*on_event)(FSM *, FSMEvent *);
-  void (*on_exit)(FSM *);
-};
-
-void fsm_init(FSM *fsm, int init_state);
-void fsm_event(FSM *fsm, FSMEvent *event);
-
-void fsm_finish_loop(FSM *fsm);
-void fsm_set_next_state(FSM *fsm, int state);
-
-#endif /* FSM_H */
-
+  unsigned int i;
+  for (i=0; i<n_commands; i++)
+    if (strcmp(cmd_str, commands[i].str) == 0)
+    {
+      if (commands[i].allowed_states & client_state)
+        return commands[i].code;
+      else
+        return CMD_INVALID;
+    }
+  return CMD_INVALID;
+}

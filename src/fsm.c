@@ -17,7 +17,7 @@ void fsm_event(FSM *fsm, FSMEvent *event)
 {
   trace("FSM %s(%s) event %d from %d", 
       fsm->name, fsm->states[fsm->state].name,
-      event->type, event->client);
+      event->type, event->fd);
 
   fsm->states[fsm->state].on_event(fsm, event);
   if (fsm->loop_finished)

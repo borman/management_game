@@ -9,6 +9,8 @@ vpath %.h src
 # Default config
 include makefiles/config.mk
 
+DEFINES += _POSIX_C_SOURCE=201011
+
 # Prefix each log message with current time
 DEFINES += USE_LOG_TIME_MARKERS
 # Do runtime type checks for list operations

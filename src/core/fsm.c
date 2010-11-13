@@ -20,7 +20,7 @@ void fsm_event(FSM *fsm, FSMEvent *event)
       event->type, event->fd);
 
   fsm->states[fsm->state].on_event(fsm, event);
-  if (fsm->loop_finished)
+  while (fsm->loop_finished)
   {
     trace("FSM %s(%s) loop finished -> switch state", 
         fsm->name, fsm->states[fsm->state].name);
@@ -30,11 +30,11 @@ void fsm_event(FSM *fsm, FSMEvent *event)
     trace("FSM %s: %s -> %s", fsm->name, 
         fsm->states[fsm->state].name, 
         fsm->states[fsm->next_state].name);
+
     fsm->state = fsm->next_state;
+    fsm->loop_finished = 0;
 
     fsm->states[fsm->state].on_enter(fsm);
-
-    fsm->loop_finished = 0;
   }
 }
 

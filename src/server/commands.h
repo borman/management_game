@@ -29,7 +29,19 @@ enum Command
   CMD_IDENTIFY,
   CMD_QUIT,
   CMD_READY,
-  CMD_NOTREADY
+  CMD_NOTREADY,
+  CMD_LSLOBBY,
+  CMD_LSGAME,
+  CMD_START,
+  CMD_STEP,
+  CMD_RUN,
+  CMD_PAUSE,
+  CMD_ABORT,
+  CMD_BUY,
+  CMD_SELL,
+  CMD_BUILD,
+  CMD_PRODUCE,
+  CMD_ROUND_READY
 };
 
 enum Command command_resolve(enum ClientState, const char *cmd_str);

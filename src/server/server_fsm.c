@@ -33,6 +33,7 @@
 enum ServerState
 {
   ST_LOBBY = 0,
+  ST_BEFORE_ROUND,
   ST_ROUND
 };
 
@@ -45,40 +46,76 @@ typedef struct ClientData
 
 typedef struct ServerData
 {
+  /* Link back to FSM */
+  FSM *fsm;
+
   SocketLoop *loop;
   List clients; /* List<ClientData *> */
-} ServerData;
 
+  /* Current round's number */
+  unsigned int round_counter;
+
+  /* whether to start the next round automatically without waiting 
+   * for a supervisor's permission */
+  int continuous_game:1;
+  /* whether the game is ending because abort was requested */
+  int abort_game:1;
+} ServerData;
 
 
 static ClientData *new_client(int fd);
 static ClientData *find_client(ServerData *d, int fd);
 static void delete_client(ClientData *client); 
+
+static void accept_client(ServerData *d, int fd);
 static void drop_client(ServerData *d, int fd);
-static void send_message(ServerData *d, int client, const char *format, ...);
+
+static void send_message(ServerData *d, int fd, const char *format, ...);
+static void send_bad_command(ServerData *d, int fd);
+
+static void command_identify(ServerData *d, ClientData *client, List args);
+static void command_quit(ServerData *d, ClientData *client, List args);
+static void command_ready(ServerData *d, ClientData *client, List args);
+static void command_notready(ServerData *d, ClientData *client, List args);
+static void command_lslobby(ServerData *d, ClientData *client, List args);
+static void command_lsgame(ServerData *d, ClientData *client, List args);
+static void command_start(ServerData *d, ClientData *client, List args);
+static void command_step(ServerData *d, ClientData *client, List args);
+static void command_pause(ServerData *d, ClientData *client, List args);
+static void command_abort(ServerData *d, ClientData *client, List args);
+static void command_run(ServerData *d, ClientData *client, List args);
+
 
 static void lobby_on_enter(FSM *fsm);
-static void lobby_on_event(FSM *fsm, FSMEvent *event);
-static void lobby_on_command(FSM *fsm, FSMEvent *event);
 static void lobby_on_exit(FSM *fsm);
+
 static void round_on_enter(FSM *fsm);
-static void round_on_event(FSM *fsm, FSMEvent *event);
 static void round_on_exit(FSM *fsm);
 
+static void before_round_on_enter(FSM *fsm);
+static void before_round_on_exit(FSM *fsm);
 
+static void on_event(FSM *fsm, FSMEvent *event);
+static void on_command(FSM *fsm, FSMEvent *event);
 
 static const struct FSMState server_states[] = 
 {
   {
     "Lobby",
     lobby_on_enter,
-    lobby_on_event,
+    on_event,
     lobby_on_exit
+  },
+  {
+    "Before round",
+    before_round_on_enter,
+    on_event,
+    before_round_on_exit
   },
   {
     "Round",
     round_on_enter,
-    round_on_event,
+    on_event,
     round_on_exit
   }
 };
@@ -103,8 +140,12 @@ FSM *server_fsm_new(SocketLoop *loop)
   ServerData *d = (ServerData *) malloc(sizeof(ServerData));
 
   memcpy(fsm, &server_dummy, sizeof(FSM));
+  d->fsm = fsm;
   d->loop = loop;
   d->clients = NULL;
+  d->continuous_game = 0;
+  d->abort_game = 0;
+  d->round_counter = 0;
   fsm->data = d;
   
   fsm_init(fsm, ST_LOBBY);
@@ -123,134 +164,127 @@ void server_fsm_delete(FSM *fsm)
  * Event handlers
  */
 
-static void lobby_on_enter(FSM *fsm)
-{
-  ServerData *d = (ServerData *) fsm->data;
-}
+/* -- Common */
 
-
-static void lobby_on_event(FSM *fsm, FSMEvent *event)
+static void on_event(FSM *fsm, FSMEvent *event)
 {
   ServerData *d = (ServerData *) fsm->data;
   switch (event->type)
   {
     case EV_CONNECT:
-      /* new client */
-      d->clients = list_push(d->clients, ClientData *, new_client(event->fd));
-      send_message(d, event->fd, 
-          "message Server \"Hello there! Please, identify yourself.\"");
+      accept_client(d, event->fd);
       break;
     case EV_DISCONNECT:
       /* delete client %d */
       drop_client(d, event->fd);
       break;
     case EV_COMMAND:
-      lobby_on_command(fsm, event);
+      on_command(fsm, event);
       break;
   }
 }
 
 
-static void lobby_on_command(FSM *fsm, FSMEvent *event)
+static void on_command(FSM *fsm, FSMEvent *event)
 {
   ServerData *d = (ServerData *) fsm->data;
   ClientData *client = find_client(d, event->fd);
   enum Command cmd = command_resolve(client->state, event->command);
-  trace("Command from %d/%#x: %s +%d", 
+  trace("%s: Command from %d/%#x: %s +%d", 
+      fsm->states[fsm->state].name,
       client->fd, client->state, 
       event->command, list_size(event->command_args));
+
   switch (cmd)
   {
-    case CMD_IDENTIFY:
-    {
-      char *type;
-      char *name;
-      if (list_size(event->command_args) != 2)
-        goto L_BAD_COMMAND;
-      type = list_head(event->command_args, char *);
-      name = list_head(event->command_args->next, char *);
-      if (strlen(name)>MAXNAMELENGTH)
-      {
-        send_message(d, client->fd, 
-            "auth_fail \"Name too long.\"");
-        send_message(d, client->fd,
-            "message Server \"The length of your name must not exceed %d characters\"",
-            MAXNAMELENGTH); 
-      } else if (strcmp(type, "client") == 0)
-      {
-        client->state = CL_IN_LOBBY;
-        client->name = strdup(name);
-        send_message(d, client->fd, "auth_ok");
-        send_message(d, client->fd,
-            "message Server \"Welcome to the lobby, %.100s\"",
-            client->name); 
-        message("%s has entered the lobby.", client->name);
-      }
-      else if (strcmp(type, "supervisor") == 0)
-      {
-        client->state = CL_SUPERVISOR;
-        client->name = strdup(name);
-        send_message(d, client->fd, "auth_ok");
-        send_message(d, client->fd,
-            "message Server \"Hi, %.100s, take your seat. I'm at your service.\"",
-            client->name); 
-        message("%s has connected as a supervisor", client->name);
-      }
-      else
-        goto L_BAD_COMMAND;
-    } break;
+#define COMMAND(small, caps) \
+    case CMD_ ## caps: \
+      command_ ## small(d, client, event->command_args);\
+      break
 
-    case CMD_QUIT:
-    {
-      if (event->command_args != NULL)
-        goto L_BAD_COMMAND;
-      socketloop_send(d->loop, client->fd, "message Server \"See ya!\""); 
-      socketloop_drop_client(d->loop, client->fd);
-    } break;
+    COMMAND(identify, IDENTIFY);
+    COMMAND(quit, QUIT);
+    COMMAND(ready, READY);
+    COMMAND(notready, NOTREADY);
+    COMMAND(lslobby, LSLOBBY);
+    COMMAND(lsgame, LSGAME);
+    COMMAND(start, START);
+    COMMAND(step, STEP);
+    COMMAND(run, RUN);
+    COMMAND(pause, PAUSE);
+    COMMAND(abort, ABORT);
 
+#undef COMMAND
     default:
-      goto L_BAD_COMMAND;
+      send_bad_command(d, client->fd);
   }
-  return;
-
-L_BAD_COMMAND:
-  send_message(d, client->fd, "error \"Bad command\""); 
 }
 
-static void lobby_on_exit(FSM *fsm)
+
+/* -- Lobby */
+
+static void lobby_on_enter(FSM *fsm)
 {
   ServerData *d = (ServerData *) fsm->data;
 }
 
+
+static void lobby_on_exit(FSM *fsm)
+{
+  ServerData *d = (ServerData *) fsm->data;
+  
+  message("The game begins.");
+  d->round_counter = 0;
+  FOREACH(ClientData *, client, d->clients)
+  {
+    if (client->state == CL_IN_LOBBY_ACK)
+    {
+      client->state = CL_IN_GAME;
+      send_message(d, client->fd, "game_start");
+    }
+  } FOREACH_END;
+}
+
+
+/* --- Before round */
+
+static void before_round_on_enter(FSM *fsm)
+{
+  ServerData *d = (ServerData *) fsm->data;
+  message("Round %d begins.", d->round_counter);
+  if (d->continuous_game)
+  {
+    fsm_finish_loop(fsm);
+    fsm_set_next_state(fsm, ST_ROUND);
+  }
+}
+
+static void before_round_on_exit(FSM *fsm)
+{
+  ServerData *d = (ServerData *) fsm->data;
+  if (d->abort_game)
+    return; /* TODO */
+
+  FOREACH(ClientData *, client, d->clients)
+  {
+    if (client->state == CL_IN_GAME)
+      send_message(d, client->fd, "round_start %u", d->round_counter);
+  } FOREACH_END;
+}
+
+
+/* -- Round */
 
 static void round_on_enter(FSM *fsm)
 {
   ServerData *d = (ServerData *) fsm->data;
 }
 
-
-static void round_on_event(FSM *fsm, FSMEvent *event)
-{
-  ServerData *d = (ServerData *) fsm->data;
-  switch (event->type)
-  {
-    case EV_CONNECT:
-      socketloop_send(d->loop, event->fd, "error \"The game's on, go away!\"");
-      socketloop_drop_client(d->loop, event->fd); 
-      break;
-    case EV_DISCONNECT:
-      /* delete client %d */
-      break;
-    case EV_COMMAND:
-      break;
-  }
-}
-
-
 static void round_on_exit(FSM *fsm)
 {
   ServerData *d = (ServerData *) fsm->data;
 }
+
 
 
 /**
@@ -283,6 +317,15 @@ static void delete_client(ClientData *client)
   free(client);
 }
 
+
+static void accept_client(ServerData *d, int fd)
+{
+  /* new client */
+  d->clients = list_push(d->clients, ClientData *, new_client(fd));
+  send_message(d, fd, 
+      "message Server \"Hello there! Please, identify yourself.\"");
+}
+
 static void drop_client(ServerData *d, int fd)
 {
   ClientData *client = find_client(d, fd);
@@ -302,6 +345,7 @@ static void drop_client(ServerData *d, int fd)
       delete_client(client));
 }
 
+
 static void send_message(ServerData *d, int client, const char *format, ...)
 {
   va_list args;
@@ -311,3 +355,204 @@ static void send_message(ServerData *d, int client, const char *format, ...)
   va_end(args);
   socketloop_send(d->loop, client, buf);
 }
+
+
+static void send_bad_command(ServerData *d, int fd)
+{
+  send_message(d, fd, "error \"Bad command\""); 
+}
+
+
+static void command_identify(ServerData *d, ClientData *client, List args)
+{
+  char *type;
+  char *name;
+  if (list_size(args) != 2)
+    goto L_BAD_COMMAND;
+  type = list_head(args, char *);
+  name = list_head(args->next, char *);
+
+  if (strlen(name)>MAXNAMELENGTH)
+  {
+    send_message(d, client->fd, 
+        "auth_fail \"Name too long.\"");
+    send_message(d, client->fd,
+        "message Server \"The length of your name must not exceed %d characters\"",
+        MAXNAMELENGTH); 
+  } else if (strcmp(type, "client") == 0)
+  {
+    client->state = CL_IN_LOBBY;
+    client->name = strdup(name);
+    send_message(d, client->fd, "auth_ok");
+    send_message(d, client->fd,
+        "message Server \"Welcome to the lobby, %.100s\"",
+        client->name); 
+    message("%s has entered the lobby.", client->name);
+  }
+  else if (strcmp(type, "supervisor") == 0)
+  {
+    client->state = CL_SUPERVISOR;
+    client->name = strdup(name);
+    send_message(d, client->fd, "auth_ok");
+    send_message(d, client->fd,
+        "message Server \"Hi, %.100s, take your seat. I'm at your service.\"",
+        client->name); 
+    message("%s has connected as a supervisor", client->name);
+  }
+  else
+    goto L_BAD_COMMAND;
+  return;
+
+L_BAD_COMMAND:
+  send_bad_command(d, client->fd);
+}
+
+
+static void command_quit(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  send_message(d, client->fd, "message Server \"See ya!\""); 
+  socketloop_drop_client(d->loop, client->fd);
+}
+
+
+static void command_ready(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  client->state = CL_IN_LOBBY_ACK;
+  send_message(d, client->fd, "message Server \"You are ready to play.\""); 
+  message("%s is ready to play.", client->name);
+}
+
+
+static void command_notready(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  client->state = CL_IN_LOBBY;
+  send_message(d, client->fd, "message Server \"You are not ready to play.\""); 
+  message("%s is not ready to play.", client->name);
+}
+
+
+static void command_lslobby(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  send_message(d, client->fd, "lslobby_begin");
+  FOREACH(ClientData *, item, d->clients)
+  {
+    if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
+      send_message(d, client->fd, 
+          "lslobby_item %c \"%s\"",
+          item->state==CL_IN_LOBBY?'-':'+',
+          item->name);
+  } FOREACH_END;
+  send_message(d, client->fd, "lslobby_end");
+}
+
+
+static void command_lsgame(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  send_message(d, client->fd, "lsgame_begin");
+  FOREACH(ClientData *, item, d->clients)
+  {
+    if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
+      send_message(d, client->fd, 
+          "lsgame_item \"%s\"",
+          item->name);
+  } FOREACH_END;
+  send_message(d, client->fd, "lsgame_end");
+}
+
+
+static void command_start(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL || d->fsm->state != ST_LOBBY)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  fsm_set_next_state(d->fsm, ST_BEFORE_ROUND);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void command_step(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL || d->fsm->state != ST_BEFORE_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  fsm_set_next_state(d->fsm, ST_ROUND);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void command_run(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL || d->fsm->state != ST_BEFORE_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  d->continuous_game = 1;
+  fsm_set_next_state(d->fsm, ST_ROUND);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void command_pause(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL || d->fsm->state != ST_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  d->continuous_game = 0;
+}
+
+
+static void command_abort(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL || (d->fsm->state != ST_ROUND && d->fsm->state != ST_BEFORE_ROUND))
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  d->abort_game = 1;
+  fsm_set_next_state(d->fsm, ST_LOBBY);
+  fsm_finish_loop(d->fsm);
+}
+
+

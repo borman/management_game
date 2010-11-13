@@ -29,10 +29,22 @@ const struct CommandDescription
   enum ClientState allowed_states;
 } commands[] = 
 {
-  {CMD_IDENTIFY, "identify", CL_CONNECTED},
-  {CMD_READY, "ready", CL_IN_LOBBY},
-  {CMD_NOTREADY, "notready", CL_IN_LOBBY_ACK},
-  {CMD_QUIT, "quit", CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME | CL_SUPERVISOR}
+  {CMD_IDENTIFY,    "identify",    CL_CONNECTED},
+  {CMD_READY,       "ready",       CL_IN_LOBBY},
+  {CMD_NOTREADY,    "notready",    CL_IN_LOBBY_ACK},
+  {CMD_QUIT,        "quit",        CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME},
+  {CMD_LSLOBBY,     "lslobby",     CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME},
+  {CMD_LSGAME,      "lsgame",      CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME},
+  {CMD_START,       "start",       CL_SUPERVISOR},
+  {CMD_STEP,        "step",        CL_SUPERVISOR},
+  {CMD_RUN,         "run",         CL_SUPERVISOR},
+  {CMD_PAUSE,       "pause",       CL_SUPERVISOR},
+  {CMD_ABORT,       "abort",       CL_SUPERVISOR},
+  {CMD_BUY,         "buy",         CL_IN_GAME},
+  {CMD_SELL,        "sell",        CL_IN_GAME},
+  {CMD_BUILD,       "build",       CL_IN_GAME},
+  {CMD_PRODUCE,     "produce",     CL_IN_GAME},
+  {CMD_ROUND_READY, "round_ready", CL_IN_GAME}
 };
 const int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 

@@ -21,9 +21,11 @@
 #include <string.h>
 #include <errno.h>
 
+#include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>          
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
@@ -36,7 +38,8 @@
 #define TCP_IN_PORT 8982
 
 
-static void listen_tcp(SocketLoop *loop);
+static int listen_tcp(SocketLoop *loop);
+static int listen_unix(SocketLoop *loop);
 static void terminate_handler(int);
 
 static void on_client_connect(SocketLoop *loop, int fd);
@@ -56,6 +59,8 @@ const SocketLoopEventHandler event_handler =
 int main()
 {
   FSM *server_fsm;
+  int tcp_ok;
+  int unix_ok;
 
   message("Server started");
   main_loop = socketloop_new(&event_handler);
@@ -67,9 +72,14 @@ int main()
   server_fsm = server_fsm_new(main_loop);
   socketloop_set_data(main_loop, server_fsm);
 
-  listen_tcp(main_loop);
+  tcp_ok = listen_tcp(main_loop);
+  unix_ok = listen_unix(main_loop);
+  if (!tcp_ok && !unix_ok)
+    fatal("Could not establish listening sockets");
   socketloop_run(main_loop);
   socketloop_close_listeners(main_loop);
+  if (unix_ok)
+    unlink("/tmp/management-game");
 
   signal(SIGINT, SIG_DFL);
   signal(SIGHUP, SIG_DFL);
@@ -83,7 +93,7 @@ int main()
 
 
 
-static void listen_tcp(SocketLoop *loop)
+static int listen_tcp(SocketLoop *loop)
 {
   struct sockaddr_in addr;
   int sock;
@@ -92,7 +102,7 @@ static void listen_tcp(SocketLoop *loop)
   if (sock<0)
   {
     warning("Could not create a listening tcp socket: %s", strerror(errno));
-    return;
+    return 0;
   }
   memset(&addr, sizeof(addr), 0);
   addr.sin_family = AF_INET;
@@ -101,12 +111,37 @@ static void listen_tcp(SocketLoop *loop)
   if (bind(sock, (struct sockaddr *)&addr, sizeof(addr))<0)
   {
     warning("Could not bind listening tcp socket: %s", strerror(errno));
-    return;
+    return 0;
   }
   message("Listening on tcp port %d", TCP_IN_PORT);
   socketloop_listen(loop, sock);
+  return 1;
 }
 
+
+static int listen_unix(SocketLoop *loop)
+{
+  struct sockaddr_un addr;
+  int sock;
+
+  sock = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (sock<0)
+  {
+    warning("Could not create a listening unix socket: %s", strerror(errno));
+    return 0;
+  }
+  memset(&addr, sizeof(addr), 0);
+  addr.sun_family = AF_UNIX;
+  strcpy(addr.sun_path, "/tmp/management-game");
+  if (bind(sock, (struct sockaddr *)&addr, sizeof(addr))<0)
+  {
+    warning("Could not bind listening unix socket: %s", strerror(errno));
+    return 0;
+  }
+  message("Listening on unix socket %s", addr.sun_path);
+  socketloop_listen(loop, sock);
+  return 1;
+}
 
 /* Signal handler */
 

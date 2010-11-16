@@ -31,11 +31,49 @@ enum ClientState
   CL_IN_LOBBY     = 0x04,
   CL_IN_LOBBY_ACK = 0x08,
   CL_IN_GAME      = 0x10,
-  CL_DEAD         = 0x20
+  CL_DEAD         = 0x20,
+
+  CL_VALID = CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME
 };
+
+enum ServerState
+{
+  ST_LOBBY = 0,
+  ST_BEFORE_ROUND,
+  ST_ROUND
+};
+
+typedef struct ClientData
+{
+  int fd;
+  enum ClientState state;
+  char *name;
+} ClientData;
+
+typedef struct ServerData
+{
+  /* Link back to FSM */
+  FSM *fsm;
+
+  SocketLoop *loop;
+  List clients; /* List<ClientData *> */
+
+  /* Current round's number */
+  unsigned int round_counter;
+
+  /* whether to start the next round automatically without waiting 
+   * for a supervisor's permission */
+  unsigned int continuous_game:1;
+  /* whether the game is ending because abort was requested */
+  unsigned int abort_game:1;
+} ServerData;
+
 
 FSM *server_fsm_new(SocketLoop *loop);
 void server_fsm_delete(FSM *fsm);
+
+void server_send_message(ServerData *d, int fd, const char *format, ...);
+void server_send_broadcast(ServerData *d, int client_mask, const char *format, ...);
 
 #endif /* SERVER_FSM_H */
 

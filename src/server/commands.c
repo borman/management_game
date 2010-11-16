@@ -20,45 +20,303 @@
 
 #include <string.h>
 
+#include "core/log.h"
 #include "server/commands.h"
+#include "server/server_fsm.h"
 
+/* Max user's display name length */
+#define MAXNAMELENGTH 30
+
+static void cmd_identify(ServerData *d, ClientData *client, List args);
+static void cmd_quit(ServerData *d, ClientData *client, List args);
+static void cmd_ready(ServerData *d, ClientData *client, List args);
+static void cmd_notready(ServerData *d, ClientData *client, List args);
+static void cmd_lslobby(ServerData *d, ClientData *client, List args);
+static void cmd_lsgame(ServerData *d, ClientData *client, List args);
+static void cmd_start(ServerData *d, ClientData *client, List args);
+static void cmd_step(ServerData *d, ClientData *client, List args);
+static void cmd_pause(ServerData *d, ClientData *client, List args);
+static void cmd_abort(ServerData *d, ClientData *client, List args);
+static void cmd_run(ServerData *d, ClientData *client, List args);
+static void cmd_buy(ServerData *d, ClientData *client, List args);
+static void cmd_sell(ServerData *d, ClientData *client, List args);
+static void cmd_produce(ServerData *d, ClientData *client, List args);
+static void cmd_build(ServerData *d, ClientData *client, List args);
+static void cmd_end_turn(ServerData *d, ClientData *client, List args);
+
+static void send_bad_command(ServerData *d, int fd);
+
+
+#define MKCOMMAND(_nargs, _cmd, _states) {cmd_##_cmd, _nargs, #_cmd, _states}
 const struct CommandDescription
 {
-  enum Command code;
+  void (*handler)(ServerData *d, ClientData *client, List args);
+  int n_args;
   const char *str;
   enum ClientState allowed_states;
 } commands[] = 
 {
-  {CMD_IDENTIFY,    "identify",    CL_CONNECTED},
-  {CMD_READY,       "ready",       CL_IN_LOBBY},
-  {CMD_NOTREADY,    "notready",    CL_IN_LOBBY_ACK},
-  {CMD_QUIT,        "quit",        CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME},
-  {CMD_LSLOBBY,     "lslobby",     CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME},
-  {CMD_LSGAME,      "lsgame",      CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME},
-  {CMD_START,       "start",       CL_SUPERVISOR},
-  {CMD_STEP,        "step",        CL_SUPERVISOR},
-  {CMD_RUN,         "run",         CL_SUPERVISOR},
-  {CMD_PAUSE,       "pause",       CL_SUPERVISOR},
-  {CMD_ABORT,       "abort",       CL_SUPERVISOR},
-  {CMD_BUY,         "buy",         CL_IN_GAME},
-  {CMD_SELL,        "sell",        CL_IN_GAME},
-  {CMD_BUILD,       "build",       CL_IN_GAME},
-  {CMD_PRODUCE,     "produce",     CL_IN_GAME},
-  {CMD_ROUND_READY, "round_ready", CL_IN_GAME}
+  /* Login command */
+  MKCOMMAND(2, identify,    CL_CONNECTED),
+
+  /* In-lobby state */
+  MKCOMMAND(0, ready,       CL_IN_LOBBY),
+  MKCOMMAND(0, notready,    CL_IN_LOBBY_ACK),
+
+  /* General information commands. Can be used at any moment of time */
+  MKCOMMAND(0, quit,        CL_VALID),
+  MKCOMMAND(0, lslobby,     CL_VALID),
+  MKCOMMAND(0, lsgame,      CL_VALID),
+
+  /* Game flow control */
+  MKCOMMAND(0, start,       CL_SUPERVISOR),
+  MKCOMMAND(0, step,        CL_SUPERVISOR),
+  MKCOMMAND(0, run,         CL_SUPERVISOR),
+  MKCOMMAND(0, pause,       CL_SUPERVISOR),
+  MKCOMMAND(0, abort,       CL_SUPERVISOR),
+
+  /* Im-game commands */
+  MKCOMMAND(0, buy,         CL_IN_GAME),
+  MKCOMMAND(0, sell,        CL_IN_GAME),
+  MKCOMMAND(0, build,       CL_IN_GAME),
+  MKCOMMAND(0, produce,     CL_IN_GAME),
+  MKCOMMAND(0, end_turn,    CL_IN_GAME)
 };
 const unsigned int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
+#undef MKCOMMAND
 
 
-enum Command command_resolve(enum ClientState client_state, const char *cmd_str)
+void command_exec(ServerData *d, ClientData *client, 
+    const char *cmd_str, List cmd_args)
 {
   unsigned int i;
   for (i=0; i<n_commands; i++)
     if (strcmp(cmd_str, commands[i].str) == 0)
     {
-      if (commands[i].allowed_states & client_state)
-        return commands[i].code;
+      if ((commands[i].allowed_states & client->state)
+          && commands[i].n_args == list_size(cmd_args) )
+      {
+        commands[i].handler(d, client, cmd_args);
+        return;
+      }
       else
-        return CMD_INVALID;
+        break;
     }
-  return CMD_INVALID;
+
+  send_bad_command(d, client->fd); 
 }
+
+static void send_bad_command(ServerData *d, int fd)
+{
+  server_send_message(d, fd,
+      "error \"Bad command\"");
+}
+
+
+/* 
+ * Commands' implementation
+ */
+
+static void cmd_identify(ServerData *d, ClientData *client, List args)
+{
+  char *type;
+  char *name;
+  type = list_head(args, char *);
+  name = list_head(args->next, char *);
+
+  if (strlen(name)>MAXNAMELENGTH)
+  {
+    server_send_message(d, client->fd, 
+        "auth_fail \"Name too long.\"");
+    server_send_message(d, client->fd,
+        "message Server \"The length of your name must not exceed %d characters\"",
+        MAXNAMELENGTH); 
+  } 
+  else if (strcmp(type, "client") == 0)
+  {
+    client->state = CL_IN_LOBBY;
+    client->name = strdup(name);
+    server_send_message(d, client->fd, 
+        "auth_ok");
+    server_send_message(d, client->fd,
+        "message Server \"Welcome to the lobby, %.100s\"",
+        client->name); 
+    message("%s has entered the lobby.", client->name);
+  }
+  else if (strcmp(type, "supervisor") == 0)
+  {
+    client->state = CL_SUPERVISOR;
+    client->name = strdup(name);
+    server_send_message(d, client->fd, 
+        "auth_ok");
+    server_send_message(d, client->fd,
+        "message Server \"Hi, %.100s, take your seat. I'm at your service.\"",
+        client->name); 
+    message("%s has connected as a supervisor", client->name);
+  }
+  else
+    send_bad_command(d, client->fd);
+}
+
+
+static void cmd_quit(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "message Server \"See ya!\""); 
+  socketloop_drop_client(d->loop, client->fd);
+  /* Client will get disconnected somewhat later */
+}
+
+
+static void cmd_ready(ServerData *d, ClientData *client, List args)
+{
+  client->state = CL_IN_LOBBY_ACK;
+  server_send_message(d, client->fd, 
+      "message Server \"You are ready to play.\""); 
+  message("%s is ready to play.", client->name);
+}
+
+
+static void cmd_notready(ServerData *d, ClientData *client, List args)
+{
+  client->state = CL_IN_LOBBY;
+  server_send_message(d, client->fd, 
+      "message Server \"You are not ready to play.\""); 
+  message("%s is not ready to play.", client->name);
+}
+
+
+static void cmd_lslobby(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "lslobby_begin");
+  FOREACH(ClientData *, item, d->clients)
+  {
+    if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
+      server_send_message(d, client->fd, 
+          "lslobby_item %c \"%s\"",
+          item->state==CL_IN_LOBBY?'-':'+',
+          item->name);
+  } FOREACH_END;
+  server_send_message(d, client->fd, 
+      "lslobby_end");
+}
+
+
+static void cmd_lsgame(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "lsgame_begin");
+  FOREACH(ClientData *, item, d->clients)
+  {
+    if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
+      server_send_message(d, client->fd, 
+          "lsgame_item \"%s\"",
+          item->name);
+  } FOREACH_END;
+  server_send_message(d, client->fd,
+      "lsgame_end");
+}
+
+
+static void cmd_start(ServerData *d, ClientData *client, List args)
+{
+  if (d->fsm->state != ST_LOBBY)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  fsm_set_next_state(d->fsm, ST_BEFORE_ROUND);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void cmd_step(ServerData *d, ClientData *client, List args)
+{
+  if (d->fsm->state != ST_BEFORE_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  fsm_set_next_state(d->fsm, ST_ROUND);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void cmd_run(ServerData *d, ClientData *client, List args)
+{
+  if (d->fsm->state != ST_BEFORE_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  d->continuous_game = 1;
+  fsm_set_next_state(d->fsm, ST_ROUND);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void cmd_pause(ServerData *d, ClientData *client, List args)
+{
+  if (args != NULL || d->fsm->state != ST_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  d->continuous_game = 0;
+}
+
+
+static void cmd_abort(ServerData *d, ClientData *client, List args)
+{
+  if (d->fsm->state != ST_ROUND && d->fsm->state != ST_BEFORE_ROUND)
+  {
+    send_bad_command(d, client->fd);
+    return;
+  }
+
+  d->abort_game = 1;
+  fsm_set_next_state(d->fsm, ST_LOBBY);
+  fsm_finish_loop(d->fsm);
+}
+
+
+static void cmd_buy(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "You wanna buy?!");
+}
+
+
+static void cmd_sell(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "You wanna sell?!");
+}
+
+
+static void cmd_produce(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "You wanna produce?!");
+}
+
+
+static void cmd_build(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "You wanna build?!");
+}
+
+
+static void cmd_end_turn(ServerData *d, ClientData *client, List args)
+{
+  server_send_message(d, client->fd, 
+      "No-no, don't move, I'm not gonna do anything!");
+}
+
+

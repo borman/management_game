@@ -124,6 +124,8 @@ static void on_client_connect(SocketLoop *loop, int fd)
   FSMEvent event;
   event.type = EV_CONNECT;
   event.fd = fd;
+  event.command = NULL;
+  event.command_args = NULL;
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
@@ -159,5 +161,7 @@ static void on_client_disconnect(SocketLoop *loop, int fd)
   FSMEvent event;
   event.type = EV_DISCONNECT;
   event.fd = fd;
+  event.command = NULL;
+  event.command_args = NULL;
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }

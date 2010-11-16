@@ -154,6 +154,7 @@ FSM *server_fsm_new(SocketLoop *loop)
 
 void server_fsm_delete(FSM *fsm)
 {
+  free(fsm->data);
   free(fsm);
 }
 
@@ -322,6 +323,8 @@ static ClientData *find_client(ServerData *d, int fd)
 
 static void delete_client(ClientData *client)
 {
+  if (client->name)
+    free(client->name);
   free(client);
 }
 

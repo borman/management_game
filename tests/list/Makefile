@@ -1,5 +1,5 @@
 # Target description
-SOURCES = list.c main.c log.c
+SOURCES = list.c log.c list_test.c 
 INCLUDEPATH = ../../src/
 TARGET = list-test
 

@@ -24,9 +24,9 @@
 typedef struct SocketLoop SocketLoop;
 typedef struct SocketLoopEventHandler
 {
-  void (*on_client_connect)(SocketLoop *loop, int client);
-  void (*on_incoming_message)(SocketLoop *loop, int client, const char *message);
-  void (*on_client_disconnect)(SocketLoop *loop, int client);
+  void (*on_client_connect)(SocketLoop *loop, int fd);
+  void (*on_incoming_message)(SocketLoop *loop, int fd, const char *message);
+  void (*on_client_disconnect)(SocketLoop *loop, int fd);
 } SocketLoopEventHandler;
 
 SocketLoop *socketloop_new(const SocketLoopEventHandler *handler);
@@ -38,8 +38,9 @@ void socketloop_close_listeners(SocketLoop *loop);
 void socketloop_run(SocketLoop *loop);
 void socketloop_stop(SocketLoop *loop);
 
-void socketloop_send(SocketLoop *loop, int client, const char *command);
-void socketloop_drop_client(SocketLoop *loop, int client);
+void socketloop_add_client(SocketLoop *loop, int fd);
+void socketloop_drop_client(SocketLoop *loop, int fd);
+void socketloop_send(SocketLoop *loop, int fd, const char *command);
 
 void socketloop_set_data(SocketLoop *loop, void *data);
 void *socketloop_get_data(SocketLoop *loop);

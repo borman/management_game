@@ -82,10 +82,14 @@ void smq_try_send(SocketMessageQueue *smq, int fd)
     while (smq->current != NULL && smq->current_pos < smq->current->size)
     {
       /* send */
-      ssize_t delta = send(fd, smq->current->data, smq->current->size - smq->current_pos, MSG_DONTWAIT);
+      ssize_t delta = send(fd, 
+          smq->current->data + smq->current_pos, 
+          smq->current->size - smq->current_pos, 
+          MSG_DONTWAIT);
       if (delta == -1)
       {
-        trace("send failed: %s", strerror(errno));
+        if (errno != EAGAIN && errno != EWOULDBLOCK)
+          warning("Send failed: %s", strerror(errno));
         return;
       }
       else

@@ -39,9 +39,9 @@
 static void listen_tcp(SocketLoop *loop);
 static void terminate_handler(int);
 
-static void on_client_connect(SocketLoop *loop, int client);
-static void on_incoming_message(SocketLoop *loop, int client, const char *message);
-static void on_client_disconnect(SocketLoop *loop, int client);
+static void on_client_connect(SocketLoop *loop, int fd);
+static void on_incoming_message(SocketLoop *loop, int fd, const char *msg);
+static void on_client_disconnect(SocketLoop *loop, int fd);
 
 
 SocketLoop *main_loop;
@@ -119,24 +119,24 @@ static void terminate_handler(int sig)
 
 /* Socket event handlers */
 
-static void on_client_connect(SocketLoop *loop, int client)
+static void on_client_connect(SocketLoop *loop, int fd)
 {
   FSMEvent event;
   event.type = EV_CONNECT;
-  event.fd = client;
+  event.fd = fd;
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }
 
 
-static void on_incoming_message(SocketLoop *loop, int client, const char *message)
+static void on_incoming_message(SocketLoop *loop, int fd, const char *msg)
 {
   TokenList *tl;
-  tl = lexer_split(message);
+  tl = lexer_split(msg);
   if (tl == NULL)
   {
-    trace("Bad message from %d", client);
-    socketloop_send(loop, client, "error \"Bad syntax\"");
-    socketloop_drop_client(loop, client);
+    trace("Bad message from %d", fd);
+    socketloop_send(loop, fd, "error \"Bad syntax\"");
+    socketloop_drop_client(loop, fd);
   }
   else if (tl->tokens != NULL)
   {
@@ -144,20 +144,20 @@ static void on_incoming_message(SocketLoop *loop, int client, const char *messag
     List args = tl->tokens->next;
     FSMEvent event;
     event.type = EV_COMMAND;
-    event.fd = client;
+    event.fd = fd;
     event.command = command;
     event.command_args = args;
     
     fsm_event((FSM *) socketloop_get_data(loop), &event);
-    lexer_delete(tl);
   }
+  lexer_delete(tl);
 }
 
 
-static void on_client_disconnect(SocketLoop *loop, int client)
+static void on_client_disconnect(SocketLoop *loop, int fd)
 {
   FSMEvent event;
   event.type = EV_DISCONNECT;
-  event.fd = client;
+  event.fd = fd;
   fsm_event((FSM *) socketloop_get_data(loop), &event);
 }

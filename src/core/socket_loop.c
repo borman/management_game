@@ -81,7 +81,6 @@ static void check_events(SocketLoop *loop, fd_set *fds_read,
     fd_set *fds_send, fd_set *fds_except);
 static void accept_connection(SocketLoop *loop, int listener_fd);
 static void read_data(SocketLoop *loop, SocketLoopClient *client);
-static void add_client(SocketLoop *loop, int fd);
 static void delete_client(SocketLoop *loop, SocketLoopClient *client);
 static SocketLoopClient *find_client(SocketLoop *loop, int fd);
 
@@ -172,10 +171,25 @@ void socketloop_send(SocketLoop *loop, int client_fd, const char *command)
 }
 
 
+void socketloop_add_client(SocketLoop *loop, int fd)
+{
+  SocketLoopClient *client = (SocketLoopClient *) malloc(sizeof(SocketLoopClient));
+
+  client->fd = fd;
+  client->buffer = buffer_new();
+  client->smq = smq_new();
+  client->is_active = 1;
+  client->is_dropped = 0;
+  
+  loop->clients = list_push(loop->clients, SocketLoopClient *, client);
+
+  loop->handler->on_client_connect(loop, fd);
+}
+
+
 void socketloop_drop_client(SocketLoop *loop, int client_fd)
 {
   SocketLoopClient *client = find_client(loop, client_fd);
-  trace("Drop client %d", client_fd);
   client->is_dropped = 1;
   if (-1 == shutdown(client->fd, SHUT_RD))
     warning("Failed to shutdown recv on %d: %s", client->fd, strerror(errno));
@@ -264,7 +278,7 @@ static void accept_connection(SocketLoop *loop, int listener_fd)
   if (fd < 0)
     warning("Failed to accept a client connection: %s", strerror(errno));
   else
-    add_client(loop, fd);
+    socketloop_add_client(loop, fd);
 }
 
 static void read_data(SocketLoop *loop, SocketLoopClient *client)
@@ -292,25 +306,6 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
   }
   else if (errno != EAGAIN && errno != EWOULDBLOCK)
     warning("Client %d: recv error: %s", client->fd, strerror(errno));
-}
-
-
-static void add_client(SocketLoop *loop, int fd)
-{
-  SocketLoopClient *client = (SocketLoopClient *) malloc(sizeof(SocketLoopClient));
-
-  client->fd = fd;
-
-  client->buffer = buffer_new();
-
-  client->smq = smq_new();
-
-  client->is_active = 1;
-  client->is_dropped = 0;
-  
-  loop->clients = list_push(loop->clients, SocketLoopClient *, client);
-
-  loop->handler->on_client_connect(loop, fd);
 }
 
 

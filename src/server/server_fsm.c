@@ -238,6 +238,7 @@ static ClientData *new_client(int fd)
   ClientData *client = (ClientData *) malloc(sizeof(ClientData));
   client->fd = fd;
   client->state = CL_CONNECTED;
+  client->name = NULL;
   return client;
 }
 

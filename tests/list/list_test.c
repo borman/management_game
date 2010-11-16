@@ -1,7 +1,7 @@
 #include "core/list.h"
 #include "core/log.h"
 
-void test_types()
+static void test_types()
 {
   const char *hello = "hello";
   int ok = 1;
@@ -23,7 +23,7 @@ void test_types()
   list_delete(l);
 }
 
-void test_push_back()
+static void test_push_back()
 {
   const int base = 100;
   const int diam = 50;
@@ -50,7 +50,11 @@ void test_push_back()
   message("-> Tests %s.", ok?"passed":"failed");
 }
 
-void test_filter()
+static int is_odd(ListItem item)
+{
+  return ((int) item)%2 == 1;
+}
+static void test_filter()
 {
   const int n = 100;
   List list = NULL;
@@ -62,31 +66,7 @@ void test_filter()
   for (i=1; i<n; i++)
     list = list_push_back(list, int, i);
 
-  /* FILTER */
-  /*
-  {
-    List _root;
-    List _l = list;
-    List *_link = &_root;
-    while (list != NULL)
-    {
-      int number = list_head(_l, int);
-      if ( (number % 2 == 0) )
-      {
-        *_link = _l;
-        _link = &_l->next;
-        _l = _l->next;
-      }
-      else
-      {
-        _l = list_pop(_l);
-      }
-    }
-    *_link = NULL;
-    list = _root;
-  }
-  */
-  FILTER(list, int, number, (number%2 == 0), (void)0);
+  list = list_filter(list, int, is_odd, NULL);
 
   ok = 1;
   for (i=2; i<n; i+=2)
@@ -98,7 +78,7 @@ void test_filter()
   message("-> Tests %s.", ok?"passed":"failed");
 }
 
-void test_foreach()
+static void test_foreach()
 {
   const int n = 100;
   List l = NULL;

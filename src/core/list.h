@@ -48,14 +48,19 @@ typedef struct ListNode
 } ListNode;
 typedef ListNode *List;
 
+typedef int (*ListItemPredicate)(ListItem item);
+typedef void (*ListItemDestructor)(ListItem item);
+
 #if defined(USE_LIST_TYPEINFO) 
 # define list_push(list, type, data) (list_push_typed(list, #type, (ListItem)(data)))
 # define list_push_back(list, type, data) (list_push_back_typed(list, #type, (ListItem)(data)))
 # define list_head(list, type)       ((type)list_head_typed(list, #type))
+# define list_filter(list, type, pred, destr) (list_filter_typed(list, #type, pred, destr))
 #else
 # define list_push(list, type, data) (list_push_typed(list, NULL, (ListItem)(data)))
 # define list_push_back(list, type, data) (list_push_back_typed(list, NULL, (ListItem)(data)))
 # define list_head(list, type)       ((type)list_head_typed(list, NULL))
+# define list_filter(list, type, pred, destr) (list_filter_typed(list, NULL, pred, destr))
 #endif
 
 #define FOREACH(type, var, list) \
@@ -64,38 +69,15 @@ do \
   List _list = list; \
   while (_list != NULL) \
   { \
-    type var = list_head(_list, type);
+    type var = list_head(_list, type); \
+    do
 
 #define FOREACH_END \
+    while (0); \
     _list = _list->next; \
   } \
 } while (0)
 
-
-#define FILTER(_list, _type, _var, _predicate, _destr) \
-do \
-{ \
-  List _root; \
-  List _l = _list; \
-  List *_link = &_root; \
-  while (_l != NULL) \
-  { \
-    _type _var = list_head(_l, _type); \
-    if ( _predicate ) \
-    { \
-      *_link = _l; \
-      _link = &_l->next; \
-      _l = _l->next; \
-    } \
-    else \
-    { \
-      _destr; \
-      _l = list_pop(_l); \
-    } \
-  } \
-  *_link = NULL; \
-  _list = _root; \
-} while (0)
 
 /**
  * Insert a new element before list head.
@@ -122,6 +104,13 @@ List list_reverse(List list);
  * Extract list's head.
  */
 ListItem list_head_typed(List list, const char *type);
+
+/**
+ * Delete items for which predicate(item) evaluates to true.
+ * If destr is not NULL, it is called for each item deleted
+ */
+List list_filter_typed(List list, const char *type, 
+    ListItemPredicate pred, ListItemDestructor destr);
 
 /** 
  * Free memory used by this list.

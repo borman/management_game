@@ -58,6 +58,8 @@ struct SocketLoop
 
 typedef struct SocketLoopClient
 {
+  SocketLoop *owner;
+
   /* Client connection descriptor */
   int fd;
 
@@ -81,7 +83,7 @@ static void check_events(SocketLoop *loop, fd_set *fds_read,
     fd_set *fds_send, fd_set *fds_except);
 static void accept_connection(SocketLoop *loop, int listener_fd);
 static void read_data(SocketLoop *loop, SocketLoopClient *client);
-static void delete_client(SocketLoop *loop, SocketLoopClient *client);
+static void delete_client(SocketLoopClient *client);
 static SocketLoopClient *find_client(SocketLoop *loop, int fd);
 
 
@@ -175,6 +177,7 @@ void socketloop_add_client(SocketLoop *loop, int fd)
 {
   SocketLoopClient *client = (SocketLoopClient *) malloc(sizeof(SocketLoopClient));
 
+  client->owner = loop;
   client->fd = fd;
   client->buffer = buffer_new();
   client->smq = smq_new();
@@ -240,6 +243,16 @@ static void fill_fd_set(SocketLoop *loop, fd_set *readfds,
 }
 
 
+static int client_is_dead(ListItem item)
+{
+  SocketLoopClient *client = (SocketLoopClient *) item;
+  return !client->is_active 
+    || (client->is_dropped && smq_is_empty(client->smq));
+}
+static void client_destr(ListItem item)
+{
+  delete_client((SocketLoopClient *) item);
+}
 static void check_events(SocketLoop *loop, fd_set *fds_read,
     fd_set *fds_send, fd_set *fds_except)
 {
@@ -262,13 +275,8 @@ static void check_events(SocketLoop *loop, fd_set *fds_read,
   } FOREACH_END;
 
   /* delete dead clients */
-  FILTER(loop->clients, 
-      SocketLoopClient *, client,
-      /* predicate */
-      (client->is_active && 
-       !(client->is_dropped && smq_is_empty(client->smq))),
-      /* destructor */
-      delete_client(loop, client));
+  loop->clients = list_filter(loop->clients, SocketLoopClient *, 
+      client_is_dead, client_destr);
 }
 
 
@@ -309,8 +317,9 @@ static void read_data(SocketLoop *loop, SocketLoopClient *client)
 }
 
 
-static void delete_client(SocketLoop *loop, SocketLoopClient *client)
+static void delete_client(SocketLoopClient *client)
 {
+  SocketLoop *loop = client->owner;
   loop->handler->on_client_disconnect(loop, client->fd);
 
   buffer_delete(client->buffer);

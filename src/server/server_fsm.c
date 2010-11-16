@@ -271,6 +271,15 @@ static void accept_client(ServerData *d, int fd)
       "message Server \"Hello there! Please, identify yourself.\"");
 }
 
+static int client_is_dead(ListItem item)
+{
+  ClientData *client = (ClientData *) item;
+  return client->state == CL_DEAD;
+}
+static void client_destr(ListItem item)
+{
+  delete_client((ClientData *) item);
+}
 static void drop_client(ServerData *d, int fd)
 {
   ClientData *client = find_client(d, fd);
@@ -284,10 +293,8 @@ static void drop_client(ServerData *d, int fd)
   }
 
   client->state = CL_DEAD;
-  FILTER(d->clients, 
-      ClientData *, client, 
-      (client->state != CL_DEAD), 
-      delete_client(client));
+  d->clients = list_filter(d->clients, ClientData *,
+      client_is_dead, client_destr);
 }
 
 

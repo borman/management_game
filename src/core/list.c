@@ -88,6 +88,35 @@ ListItem list_head_typed(List list, const char *type)
   return list->data;
 }
 
+List list_filter_typed(List list, const char *type, 
+    ListItemPredicate pred, ListItemDestructor destr)
+{
+  /* New list's root */
+  List root;  
+  /* Link to next item */
+  List *link = &root; 
+  while (list != NULL) 
+  { 
+    ListItem item = list_head_typed(list, type); 
+    if (pred(item)) 
+    { 
+      /* delete */
+      if (destr != NULL)
+        destr(item); 
+      list = list_pop(list); 
+    } 
+    else 
+    { 
+      /* skip */
+      *link = list; 
+      link = &list->next; 
+      list = list->next; 
+    } 
+  } 
+  *link = NULL; 
+  return root; 
+}
+
 
 void list_delete(List list)
 {

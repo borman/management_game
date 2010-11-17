@@ -44,6 +44,7 @@ static void cmd_produce(ServerData *d, ClientData *client, List args);
 static void cmd_build(ServerData *d, ClientData *client, List args);
 
 static void send_bad_command(ServerData *d, int fd);
+static void send_ack(ServerData *d, int fd);
 
 
 /* A convenience macro to declare commands */
@@ -116,6 +117,12 @@ static void send_bad_command(ServerData *d, int fd)
       "error \"Bad command\"");
 }
 
+static void send_ack(ServerData *d, int fd)
+{
+  server_send_message(d, fd,
+      "ack");
+}
+
 
 /* 
  * Commands' implementation
@@ -131,7 +138,7 @@ static void cmd_identify(ServerData *d, ClientData *client, List args)
   if (strlen(name)>MAXNAMELENGTH)
   {
     server_send_message(d, client->fd, 
-        "auth_fail \"Name too long.\"");
+        "error \"Name too long.\"");
     server_send_message(d, client->fd,
         "message Server \"The length of your name must not exceed %d characters\"",
         MAXNAMELENGTH); 
@@ -140,8 +147,7 @@ static void cmd_identify(ServerData *d, ClientData *client, List args)
   {
     client->state = CL_IN_LOBBY;
     client->name = strdup(name);
-    server_send_message(d, client->fd, 
-        "auth_ok");
+    send_ack(d, client->fd); 
     server_send_message(d, client->fd,
         "message Server \"Welcome to the lobby, %.100s\"",
         client->name); 
@@ -151,8 +157,7 @@ static void cmd_identify(ServerData *d, ClientData *client, List args)
   {
     client->state = CL_SUPERVISOR;
     client->name = strdup(name);
-    server_send_message(d, client->fd, 
-        "auth_ok");
+    send_ack(d, client->fd);
     server_send_message(d, client->fd,
         "message Server \"Hi, %.100s, take your seat. I'm at your service.\"",
         client->name); 
@@ -165,6 +170,7 @@ static void cmd_identify(ServerData *d, ClientData *client, List args)
 
 static void cmd_quit(ServerData *d, ClientData *client, List args)
 {
+  send_ack(d, client->fd);
   server_send_message(d, client->fd, 
       "message Server \"See ya!\""); 
   socketloop_drop_client(d->loop, client->fd);
@@ -176,6 +182,7 @@ static void cmd_ready(ServerData *d, ClientData *client, List args)
 {
   if (client->state == CL_IN_LOBBY)
   {
+    send_ack(d, client->fd);
     client->state = CL_IN_LOBBY_ACK;
     server_send_message(d, client->fd, 
         "message Server \"You are ready to play. "
@@ -184,6 +191,7 @@ static void cmd_ready(ServerData *d, ClientData *client, List args)
   }
   else if (client->state == CL_IN_GAME)
   {
+    send_ack(d, client->fd);
     client->state = CL_IN_GAME_WAIT;
     server_send_message(d, client->fd,
         "message Server \"Your turn is over. "
@@ -196,6 +204,7 @@ static void cmd_ready(ServerData *d, ClientData *client, List args)
 
 static void cmd_notready(ServerData *d, ClientData *client, List args)
 {
+  send_ack(d, client->fd);
   client->state = CL_IN_LOBBY;
   server_send_message(d, client->fd, 
       "message Server \"You are not ready to play.\""); 
@@ -245,6 +254,7 @@ static void cmd_start(ServerData *d, ClientData *client, List args)
     return;
   }
 
+  send_ack(d, client->fd);
   fsm_set_next_state(d->fsm, ST_BEFORE_ROUND);
   fsm_finish_loop(d->fsm);
 }
@@ -258,6 +268,7 @@ static void cmd_step(ServerData *d, ClientData *client, List args)
     return;
   }
 
+  send_ack(d, client->fd);
   fsm_set_next_state(d->fsm, ST_ROUND);
   fsm_finish_loop(d->fsm);
 }
@@ -271,6 +282,7 @@ static void cmd_run(ServerData *d, ClientData *client, List args)
     return;
   }
 
+  send_ack(d, client->fd);
   d->continuous_game = 1;
   fsm_set_next_state(d->fsm, ST_ROUND);
   fsm_finish_loop(d->fsm);
@@ -285,6 +297,7 @@ static void cmd_pause(ServerData *d, ClientData *client, List args)
     return;
   }
 
+  send_ack(d, client->fd);
   d->continuous_game = 0;
 }
 
@@ -297,6 +310,7 @@ static void cmd_abort(ServerData *d, ClientData *client, List args)
     return;
   }
 
+  send_ack(d, client->fd);
   d->abort_game = 1;
   fsm_set_next_state(d->fsm, ST_LOBBY);
   fsm_finish_loop(d->fsm);
@@ -305,6 +319,7 @@ static void cmd_abort(ServerData *d, ClientData *client, List args)
 
 static void cmd_buy(ServerData *d, ClientData *client, List args)
 {
+  send_ack(d, client->fd);
   server_send_message(d, client->fd, 
       "You wanna buy?!");
 }
@@ -312,6 +327,7 @@ static void cmd_buy(ServerData *d, ClientData *client, List args)
 
 static void cmd_sell(ServerData *d, ClientData *client, List args)
 {
+  send_ack(d, client->fd);
   server_send_message(d, client->fd, 
       "You wanna sell?!");
 }
@@ -319,6 +335,7 @@ static void cmd_sell(ServerData *d, ClientData *client, List args)
 
 static void cmd_produce(ServerData *d, ClientData *client, List args)
 {
+  send_ack(d, client->fd);
   server_send_message(d, client->fd, 
       "You wanna produce?!");
 }
@@ -326,6 +343,7 @@ static void cmd_produce(ServerData *d, ClientData *client, List args)
 
 static void cmd_build(ServerData *d, ClientData *client, List args)
 {
+  send_ack(d, client->fd);
   server_send_message(d, client->fd, 
       "You wanna build?!");
 }

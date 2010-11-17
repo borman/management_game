@@ -42,7 +42,6 @@ static void cmd_buy(ServerData *d, ClientData *client, List args);
 static void cmd_sell(ServerData *d, ClientData *client, List args);
 static void cmd_produce(ServerData *d, ClientData *client, List args);
 static void cmd_build(ServerData *d, ClientData *client, List args);
-static void cmd_end_turn(ServerData *d, ClientData *client, List args);
 
 static void send_bad_command(ServerData *d, int fd);
 
@@ -84,8 +83,7 @@ const struct CommandDescription
   MKCOMMAND(0, buy,         CL_IN_GAME),
   MKCOMMAND(0, sell,        CL_IN_GAME),
   MKCOMMAND(0, build,       CL_IN_GAME),
-  MKCOMMAND(0, produce,     CL_IN_GAME),
-  MKCOMMAND(0, end_turn,    CL_IN_GAME)
+  MKCOMMAND(0, produce,     CL_IN_GAME)
 };
 const unsigned int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 #undef MKCOMMAND
@@ -330,13 +328,6 @@ static void cmd_build(ServerData *d, ClientData *client, List args)
 {
   server_send_message(d, client->fd, 
       "You wanna build?!");
-}
-
-
-static void cmd_end_turn(ServerData *d, ClientData *client, List args)
-{
-  server_send_message(d, client->fd, 
-      "No-no, don't move, I'm not gonna do anything!");
 }
 
 

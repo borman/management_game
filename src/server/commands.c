@@ -47,7 +47,12 @@ static void cmd_end_turn(ServerData *d, ClientData *client, List args);
 static void send_bad_command(ServerData *d, int fd);
 
 
+/* A convenience macro to declare commands */
 #define MKCOMMAND(_nargs, _cmd, _states) {cmd_##_cmd, _nargs, #_cmd, _states}
+/* A shorthand for the set of all "normal" states */
+#define CL_VALID (CL_SUPERVISOR \
+    | CL_IN_LOBBY | CL_IN_LOBBY_ACK \
+    | CL_IN_GAME | CL_IN_GAME_WAIT)
 const struct CommandDescription
 {
   void (*handler)(ServerData *d, ClientData *client, List args);
@@ -59,8 +64,8 @@ const struct CommandDescription
   /* Login command */
   MKCOMMAND(2, identify,    CL_CONNECTED),
 
-  /* In-lobby state */
-  MKCOMMAND(0, ready,       CL_IN_LOBBY),
+  /* Readiness state. Both are valid in lobby, 'ready' is available in-game */
+  MKCOMMAND(0, ready,       CL_IN_LOBBY | CL_IN_GAME),
   MKCOMMAND(0, notready,    CL_IN_LOBBY_ACK),
 
   /* General information commands. Can be used at any moment of time */
@@ -97,10 +102,11 @@ void command_exec(ServerData *d, ClientData *client,
           && commands[i].n_args == list_size(cmd_args) )
       {
         commands[i].handler(d, client, cmd_args);
-        return;
       }
       else
-        break;
+        server_send_message(d, client->fd,
+            "error \"Command not available right now\"");
+      return;
     }
 
   send_bad_command(d, client->fd); 
@@ -170,10 +176,23 @@ static void cmd_quit(ServerData *d, ClientData *client, List args)
 
 static void cmd_ready(ServerData *d, ClientData *client, List args)
 {
-  client->state = CL_IN_LOBBY_ACK;
-  server_send_message(d, client->fd, 
-      "message Server \"You are ready to play.\""); 
-  message("%s is ready to play.", client->name);
+  if (client->state == CL_IN_LOBBY)
+  {
+    client->state = CL_IN_LOBBY_ACK;
+    server_send_message(d, client->fd, 
+        "message Server \"You are ready to play. "
+        "Please wait for the game to start\""); 
+    message("%s is ready to play.", client->name);
+  }
+  else if (client->state == CL_IN_GAME)
+  {
+    client->state = CL_IN_GAME_WAIT;
+    server_send_message(d, client->fd,
+        "message Server \"Your turn is over. "
+        "Please wait for other players to get ready.\"");
+    message("%s has finished his turn.", client->name);
+    d->n_waitfor--;
+  }
 }
 
 
@@ -189,33 +208,34 @@ static void cmd_notready(ServerData *d, ClientData *client, List args)
 static void cmd_lslobby(ServerData *d, ClientData *client, List args)
 {
   server_send_message(d, client->fd, 
-      "lslobby_begin");
+      "lslobby begin");
   FOREACH(ClientData *, item, d->clients)
   {
     if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
       server_send_message(d, client->fd, 
-          "lslobby_item %c \"%s\"",
+          "lslobby item %c \"%s\"",
           item->state==CL_IN_LOBBY?'-':'+',
           item->name);
   } FOREACH_END;
   server_send_message(d, client->fd, 
-      "lslobby_end");
+      "lslobby end");
 }
 
 
 static void cmd_lsgame(ServerData *d, ClientData *client, List args)
 {
   server_send_message(d, client->fd, 
-      "lsgame_begin");
+      "lsgame begin");
   FOREACH(ClientData *, item, d->clients)
   {
-    if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
+    if (item->state & (CL_IN_GAME | CL_IN_GAME_WAIT))
       server_send_message(d, client->fd, 
-          "lsgame_item \"%s\"",
+          "lsgame item %c \"%s\"",
+          item->state==CL_IN_GAME?'-':'+',
           item->name);
   } FOREACH_END;
   server_send_message(d, client->fd,
-      "lsgame_end");
+      "lsgame end");
 }
 
 

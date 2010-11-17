@@ -26,14 +26,13 @@
 
 enum ClientState
 {
-  CL_CONNECTED    = 0x01,
-  CL_SUPERVISOR   = 0x02,
-  CL_IN_LOBBY     = 0x04,
-  CL_IN_LOBBY_ACK = 0x08,
-  CL_IN_GAME      = 0x10,
-  CL_DEAD         = 0x20,
-
-  CL_VALID = CL_SUPERVISOR | CL_IN_LOBBY | CL_IN_LOBBY_ACK | CL_IN_GAME
+  CL_CONNECTED     = 0x01,
+  CL_SUPERVISOR    = 0x02,
+  CL_IN_LOBBY      = 0x04,
+  CL_IN_LOBBY_ACK  = 0x08,
+  CL_IN_GAME       = 0x10,
+  CL_IN_GAME_WAIT  = 0x20,
+  CL_DEAD          = 0x40
 };
 
 enum ServerState
@@ -61,10 +60,15 @@ typedef struct ServerData
   /* Current round's number */
   unsigned int round_counter;
 
-  /* whether to start the next round automatically without waiting 
+  /* Count of players in-game */
+  unsigned int n_players;
+  /* Cound of players whose turns are not finished */
+  unsigned int n_waitfor;
+
+  /* Whether to start the next round automatically without waiting 
    * for a supervisor's permission */
   unsigned int continuous_game:1;
-  /* whether the game is ending because abort was requested */
+  /* Whether the game is ending because abort was requested */
   unsigned int abort_game:1;
 } ServerData;
 

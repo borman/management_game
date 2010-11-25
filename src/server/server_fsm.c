@@ -26,6 +26,7 @@
 #include "core/log.h"
 #include "server/server_fsm.h"
 #include "server/commands.h"
+#include "server/game.h"
 
 #define MAXREPLYLENGTH 256
 
@@ -164,6 +165,8 @@ static void on_event(FSM *fsm, FSMEvent *event)
   {
     /* Nobody's left*/
     message("The game is over.");
+    server_send_broadcast(d, CL_IN_GAME | CL_IN_GAME_WAIT,
+        "game end");
     fsm_set_next_state(fsm, ST_LOBBY);
     fsm_finish_loop(fsm);
   }
@@ -209,12 +212,9 @@ static void lobby_on_exit(FSM *fsm)
     {
       client->state = CL_IN_GAME_WAIT;
       d->n_players++;
-      server_send_message(d, client->fd, 
-          "game start");
-      server_send_message(d, client->fd,
-          "message Server \"I'll tell ya something 'bout the market...\"");
     }
   } FOREACH_END;
+  game_start(d);
 }
 
 
@@ -244,26 +244,16 @@ static void round_on_enter(FSM *fsm)
   FOREACH(ClientData *, client, d->clients)
   {
     if (client->state == CL_IN_GAME_WAIT)
-    {
       client->state = CL_IN_GAME;
-      server_send_message(d, client->fd,
-        "round start %u", 
-        d->round_counter);
-    }
   } FOREACH_END;
   d->n_waitfor = d->n_players;
+  game_start_round(d);
 }
 
 static void round_on_exit(FSM *fsm)
 {
   ServerData *d = (ServerData *) fsm->data;
-
-  server_send_broadcast(d, CL_IN_GAME_WAIT,
-      "round end %u", 
-      d->round_counter);
-  server_send_broadcast(d, CL_IN_GAME_WAIT,
-    "message Server \"The sales happen now.\"");
-
+  game_finish_round(d);
   d->round_counter++;
 }
 
@@ -275,7 +265,7 @@ static void round_on_exit(FSM *fsm)
 
 static ClientData *new_client(int fd)
 {
-  ClientData *client = (ClientData *) malloc(sizeof(ClientData));
+  ClientData *client = (ClientData *) calloc(1, sizeof(ClientData));
   client->fd = fd;
   client->state = CL_CONNECTED;
   client->name = NULL;
@@ -328,9 +318,9 @@ static void drop_client(ServerData *d, int fd)
   {
    if (client->state == CL_SUPERVISOR)
      message("Supervisor %s has disconnected", client->name);
-   else if (client->state == CL_IN_LOBBY || client->state == CL_IN_LOBBY_ACK)
+   else if (client->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
      message("%s has left the lobby.", client->name);
-   else if (client->state == CL_IN_GAME || client->state == CL_IN_GAME_WAIT)
+   else if (client->state & (CL_IN_GAME | CL_IN_GAME_WAIT))
    {
      message("%s has left the game.", client->name);
      d->n_players--;

@@ -26,13 +26,13 @@
 
 enum ClientState
 {
-  CL_CONNECTED     = 0x01,
-  CL_SUPERVISOR    = 0x02,
-  CL_IN_LOBBY      = 0x04,
-  CL_IN_LOBBY_ACK  = 0x08,
-  CL_IN_GAME       = 0x10,
-  CL_IN_GAME_WAIT  = 0x20,
-  CL_DEAD          = 0x40
+  CL_CONNECTED           = 0x01,
+  CL_SUPERVISOR          = 0x02,
+  CL_IN_LOBBY            = 0x04,
+  CL_IN_LOBBY_ACK        = 0x08,
+  CL_IN_GAME             = 0x10,
+  CL_IN_GAME_WAIT        = 0x20,
+  CL_DEAD                = 0x40
 };
 
 enum ServerState
@@ -42,11 +42,49 @@ enum ServerState
   ST_ROUND
 };
 
+typedef struct FactoryRequest
+{
+  int count;
+  int deadline;
+} FactoryRequest;
+
+typedef struct MarketState
+{
+  struct 
+  { 
+    double mult;
+    double price;
+    unsigned int count;
+  } raw, product; 
+} MarketState;
+
+typedef struct GameClientState
+{
+  int money;
+  int factories;
+  int raw;
+  int product;
+  /* List of factories being built */
+  List factories_incomplete; /* List<FactoryRequest *> */
+} GameClientState;
+
+typedef struct GameClientRequest
+{
+  unsigned int raw_to_buy;
+  double raw_price;
+  unsigned int product_to_sell;
+  double product_price;
+  int items_to_produce;
+  int factories_to_build;
+} GameClientRequest;
+
 typedef struct ClientData
 {
   int fd;
   enum ClientState state;
   char *name;
+  GameClientState gcs;
+  GameClientRequest req;
 } ClientData;
 
 typedef struct ServerData
@@ -59,6 +97,9 @@ typedef struct ServerData
 
   /* Current round's number */
   unsigned int round_counter;
+  /* Current market state */
+  unsigned int market_state_number;
+  MarketState market_state;
 
   /* Count of players in-game */
   unsigned int n_players;

@@ -28,14 +28,14 @@ void game_start(ServerData *d);
 void game_start_round(ServerData *d);
 void game_finish_round(ServerData *d);
 
-void game_request_buy(ServerData *d, ClientData *client, 
-    unsigned int count, double price);
-void game_request_sell(ServerData *d, ClientData *client, 
-    unsigned int count, double price);
-void game_request_produce(ServerData *d, ClientData *client,
-    unsigned int count);
-void game_request_build(ServerData *d, ClientData *client,
-    unsigned int count);
+const char *game_request_buy(ServerData *d, ClientData *client, 
+    count_t count, price_t price);
+const char *game_request_sell(ServerData *d, ClientData *client, 
+    count_t count, price_t price);
+const char *game_request_produce(ServerData *d, ClientData *client,
+    count_t count);
+const char *game_request_build(ServerData *d, ClientData *client,
+    count_t count);
 
 #endif /* GAME_H */
 

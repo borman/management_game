@@ -23,47 +23,56 @@
 #include "core/log.h"
 #include "server/commands.h"
 #include "server/server_fsm.h"
+#include "server/game.h"
 
 /* Max user's display name length */
 #define MAXNAMELENGTH 30
 
-static void cmd_identify(ServerData *d, ClientData *client, List args);
-static void cmd_quit(ServerData *d, ClientData *client, List args);
-static void cmd_ready(ServerData *d, ClientData *client, List args);
-static void cmd_notready(ServerData *d, ClientData *client, List args);
-static void cmd_lslobby(ServerData *d, ClientData *client, List args);
-static void cmd_lsgame(ServerData *d, ClientData *client, List args);
-static void cmd_start(ServerData *d, ClientData *client, List args);
-static void cmd_step(ServerData *d, ClientData *client, List args);
-static void cmd_pause(ServerData *d, ClientData *client, List args);
-static void cmd_abort(ServerData *d, ClientData *client, List args);
-static void cmd_run(ServerData *d, ClientData *client, List args);
-static void cmd_buy(ServerData *d, ClientData *client, List args);
-static void cmd_sell(ServerData *d, ClientData *client, List args);
-static void cmd_produce(ServerData *d, ClientData *client, List args);
-static void cmd_build(ServerData *d, ClientData *client, List args);
+/**
+ * Command handlers return NULL | <static-allocated string>
+ * If retval is NULL, result is consedered "ok", otherwise the return value is
+ * used as an error message
+ */
+static const char *do_command_exec(ServerData *d, ClientData *client, 
+    const char *cmd_str, List cmd_args);
 
-static void send_bad_command(ServerData *d, int fd);
-static void send_ack(ServerData *d, int fd);
-
-
-/* A convenience macro to declare commands */
+/* A convenience macro to declare command handlers */
+#define DECLCOMMAND(_name) \
+  static const char *cmd_##_name(ServerData *d, ClientData *client, List args)
+/* A convenience macro to declare commands descriptions */
 #define MKCOMMAND(_nargs, _argt, _cmd, _states) {cmd_##_cmd, _nargs, _argt, #_cmd, _states}
-/* A shorthand for the set of all "normal" states */
+/* A shorthand for the set of all "authenticated" states */
 #define CL_VALID (CL_SUPERVISOR \
     | CL_IN_LOBBY | CL_IN_LOBBY_ACK \
     | CL_IN_GAME | CL_IN_GAME_WAIT)
+
+DECLCOMMAND(auth);
+DECLCOMMAND(quit);
+DECLCOMMAND(ready);
+DECLCOMMAND(notready);
+DECLCOMMAND(lslobby);
+DECLCOMMAND(lsgame);
+DECLCOMMAND(start);
+DECLCOMMAND(step);
+DECLCOMMAND(pause);
+DECLCOMMAND(abort);
+DECLCOMMAND(run);
+DECLCOMMAND(buy);
+DECLCOMMAND(sell);
+DECLCOMMAND(produce);
+DECLCOMMAND(build);
+
 const struct CommandDescription
 {
-  void (*handler)(ServerData *d, ClientData *client, List args);
+  const char *(*handler)(ServerData *d, ClientData *client, List args);
   int n_args;
   const char *arg_types;
   const char *str;
-  enum ClientState allowed_states;
+  int allowed_states;
 } commands[] = 
 {
   /* Login command */
-  MKCOMMAND(2, "ss", identify,    CL_CONNECTED),
+  MKCOMMAND(2, "ss", auth,        CL_CONNECTED),
 
   /* Readiness state. Both are valid in lobby, 'ready' is available in-game */
   MKCOMMAND(0, "",   ready,       CL_IN_LOBBY | CL_IN_GAME),
@@ -81,26 +90,31 @@ const struct CommandDescription
   MKCOMMAND(0, "",   pause,       CL_SUPERVISOR),
   MKCOMMAND(0, "",   abort,       CL_SUPERVISOR),
 
-  /* Im-game commands */
-  MKCOMMAND(2, "uf", buy,         CL_IN_GAME),
-  MKCOMMAND(2, "uf", sell,        CL_IN_GAME),
+  /* In-game commands */
+  MKCOMMAND(2, "uu", buy,         CL_IN_GAME),
+  MKCOMMAND(2, "uu", sell,        CL_IN_GAME),
   MKCOMMAND(1, "u",  build,       CL_IN_GAME),
   MKCOMMAND(1, "u",  produce,     CL_IN_GAME)
 };
 const unsigned int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 #undef MKCOMMAND
 
-static int check_args(List *pres, List args, struct CommandDescription *command)
+static int read_uint(const char *str, List *list)
+{
+  unsigned int t;
+  if (sscanf(str, "%u", &t) != 1)
+    return 0;
+  else
+    *list = list_push(*list, unsigned int, t);
+  return 1;
+}
+
+static int check_args(List *pres, List args, const struct CommandDescription *command)
 {
   int i;
   List res = NULL;
   if (list_size(args) != command->n_args)
     return 0;
-  if (command->n_args == 0)
-  {
-    *pres = NULL;
-    return 1;
-  }
 
   /* Convert arg types */
   i = 0;
@@ -109,24 +123,15 @@ static int check_args(List *pres, List args, struct CommandDescription *command)
     switch (command->arg_types[i])
     {
       case 'u':
+        if (!read_uint(arg, &res))
         {
-          unsigned int t;
-          if (sscanf(arg, "%u", &t) != 1)
-            goto L_FAIL;
-          else
-            res = list_push(res, unsigned int, t);
-        } break;
+          list_delete(res);
+          return 0;
+        }
+        break;
       case 's':
         res = list_push(res, char *, arg);
         break;
-      case 'f':
-        {
-          double t;
-          if (sscanf(arg, "%lf", &t) != 1)
-            goto L_FAIL;
-          else
-            res = list_push(res, double, t);
-        } break;
       default:
         fatal("Invalid argument type string");
     }
@@ -134,50 +139,46 @@ static int check_args(List *pres, List args, struct CommandDescription *command)
   } FOREACH_END;
   *pres = list_reverse(res);
   return 1;
-
-L_FAIL:
-  list_delete(res);
-  return 0;
 }
 
+
 void command_exec(ServerData *d, ClientData *client, 
+    const char *cmd_str, List cmd_args)
+{
+  const char *msg = do_command_exec(d, client, cmd_str, cmd_args);
+  if (msg == NULL)
+    server_send_message(d, client->fd, "ack");
+  else
+    server_send_message(d, client->fd, "fail \"%s\"", msg);
+}
+
+static const char *do_command_exec(ServerData *d, ClientData *client, 
     const char *cmd_str, List cmd_args)
 {
   unsigned int i;
   for (i=0; i<n_commands; i++)
     if (strcmp(cmd_str, commands[i].str) == 0)
     {
+      /* Command matched */
       if (commands[i].allowed_states & client->state)
       {
+        /* Command allowed */
         List processed_args;
         if (check_args(&processed_args, cmd_args, &commands[i]))
         {
-          commands[i].handler(d, client, processed_args);
+          /* Command's arguments validated and parsed */
+          const char *msg = commands[i].handler(d, client, processed_args);
           list_delete(processed_args);
+          return msg;
         }
         else
-          server_send_message(d, client->fd,
-              "error \"Bad command arguments\"");
+          return "Bad command arguments";
       }
       else
-        server_send_message(d, client->fd,
-            "error \"Command not available right now\"");
-      return;
+        return "Command not available right now";
     }
 
-  send_bad_command(d, client->fd); 
-}
-
-static void send_bad_command(ServerData *d, int fd)
-{
-  server_send_message(d, fd,
-      "error \"Bad command\"");
-}
-
-static void send_ack(ServerData *d, int fd)
-{
-  server_send_message(d, fd,
-      "ack");
+  return "Bad command";
 }
 
 
@@ -185,59 +186,56 @@ static void send_ack(ServerData *d, int fd)
  * Commands' implementation
  */
 
-static void cmd_identify(ServerData *d, ClientData *client, List args)
+static const char *cmd_auth(ServerData *d, ClientData *client, List args)
 {
   char *type = list_head(args, char *);
   char *name = list_head(args->next, char *);
 
   if (strlen(name)>MAXNAMELENGTH)
   {
-    server_send_message(d, client->fd, 
-        "error \"Name too long.\"");
     server_send_message(d, client->fd,
         "message Server \"The length of your name must not exceed %d characters\"",
         MAXNAMELENGTH); 
+    return "Name too long";
   } 
-  else if (strcmp(type, "client") == 0)
+  else if (strcmp(type, "player") == 0)
   {
     client->state = CL_IN_LOBBY;
     client->name = strdup(name);
-    send_ack(d, client->fd); 
     server_send_message(d, client->fd,
         "message Server \"Welcome to the lobby, %.100s\"",
         client->name); 
     message("%s has entered the lobby.", client->name);
   }
-  else if (strcmp(type, "supervisor") == 0)
+  else if (strcmp(type, "super") == 0)
   {
     client->state = CL_SUPERVISOR;
     client->name = strdup(name);
-    send_ack(d, client->fd);
     server_send_message(d, client->fd,
         "message Server \"Hi, %.100s, take your seat. I'm at your service.\"",
         client->name); 
     message("%s has connected as a supervisor", client->name);
   }
   else
-    send_bad_command(d, client->fd);
+    return "Bad client type";
+  return NULL;
 }
 
 
-static void cmd_quit(ServerData *d, ClientData *client, List args)
+static const char *cmd_quit(ServerData *d, ClientData *client, List args)
 {
-  send_ack(d, client->fd);
   server_send_message(d, client->fd, 
       "message Server \"See ya!\""); 
   socketloop_drop_client(d->loop, client->fd);
-  /* Client will get disconnected somewhat later */
+  /* Client will get disconnected somewhat later (asynchronously) */
+  return NULL;
 }
 
 
-static void cmd_ready(ServerData *d, ClientData *client, List args)
+static const char *cmd_ready(ServerData *d, ClientData *client, List args)
 {
   if (client->state == CL_IN_LOBBY)
   {
-    send_ack(d, client->fd);
     client->state = CL_IN_LOBBY_ACK;
     server_send_message(d, client->fd, 
         "message Server \"You are ready to play. "
@@ -246,7 +244,6 @@ static void cmd_ready(ServerData *d, ClientData *client, List args)
   }
   else if (client->state == CL_IN_GAME)
   {
-    send_ack(d, client->fd);
     client->state = CL_IN_GAME_WAIT;
     server_send_message(d, client->fd,
         "message Server \"Your turn is over. "
@@ -254,20 +251,21 @@ static void cmd_ready(ServerData *d, ClientData *client, List args)
     message("%s has finished his turn.", client->name);
     d->n_waitfor--;
   }
+  return NULL;
 }
 
 
-static void cmd_notready(ServerData *d, ClientData *client, List args)
+static const char *cmd_notready(ServerData *d, ClientData *client, List args)
 {
-  send_ack(d, client->fd);
   client->state = CL_IN_LOBBY;
   server_send_message(d, client->fd, 
       "message Server \"You are not ready to play.\""); 
   message("%s is not ready to play.", client->name);
+  return NULL;
 }
 
 
-static void cmd_lslobby(ServerData *d, ClientData *client, List args)
+static const char *cmd_lslobby(ServerData *d, ClientData *client, List args)
 {
   server_send_message(d, client->fd, 
       "lslobby begin");
@@ -275,16 +273,17 @@ static void cmd_lslobby(ServerData *d, ClientData *client, List args)
   {
     if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
       server_send_message(d, client->fd, 
-          "lslobby item %c \"%s\"",
-          item->state==CL_IN_LOBBY?'-':'+',
-          item->name);
+          "lslobby item \"%s\" %c",
+          item->name,
+          item->state==CL_IN_LOBBY?'-':'+');
   } FOREACH_END;
   server_send_message(d, client->fd, 
       "lslobby end");
+  return NULL;
 }
 
 
-static void cmd_lsgame(ServerData *d, ClientData *client, List args)
+static const char *cmd_lsgame(ServerData *d, ClientData *client, List args)
 {
   server_send_message(d, client->fd, 
       "lsgame begin");
@@ -292,112 +291,100 @@ static void cmd_lsgame(ServerData *d, ClientData *client, List args)
   {
     if (item->state & (CL_IN_GAME | CL_IN_GAME_WAIT))
       server_send_message(d, client->fd, 
-          "lsgame item %c \"%s\"",
+          "lsgame item \"%s\" %c %d %d %d %d",
+          item->name,
           item->state==CL_IN_GAME?'-':'+',
-          item->name);
+          item->gcs.money, item->gcs.factories,
+          item->gcs.raw, item->gcs.product);
   } FOREACH_END;
   server_send_message(d, client->fd,
       "lsgame end");
+  return NULL;
 }
 
 
-static void cmd_start(ServerData *d, ClientData *client, List args)
+static const char *cmd_start(ServerData *d, ClientData *client, List args)
 {
   if (d->fsm->state != ST_LOBBY)
-  {
-    send_bad_command(d, client->fd);
-    return;
-  }
+    return "Game already started";
 
-  send_ack(d, client->fd);
   fsm_set_next_state(d->fsm, ST_BEFORE_ROUND);
   fsm_finish_loop(d->fsm);
+  return NULL;
 }
 
 
-static void cmd_step(ServerData *d, ClientData *client, List args)
+static const char *cmd_step(ServerData *d, ClientData *client, List args)
 {
   if (d->fsm->state != ST_BEFORE_ROUND)
-  {
-    send_bad_command(d, client->fd);
-    return;
-  }
+    return "Game not started or round already running";
 
-  send_ack(d, client->fd);
   fsm_set_next_state(d->fsm, ST_ROUND);
   fsm_finish_loop(d->fsm);
+  return NULL;
 }
 
 
-static void cmd_run(ServerData *d, ClientData *client, List args)
+static const char *cmd_run(ServerData *d, ClientData *client, List args)
 {
   if (d->fsm->state != ST_BEFORE_ROUND)
-  {
-    send_bad_command(d, client->fd);
-    return;
-  }
+    return "Game not started or round already running";
 
-  send_ack(d, client->fd);
   d->continuous_game = 1;
   fsm_set_next_state(d->fsm, ST_ROUND);
   fsm_finish_loop(d->fsm);
+  return NULL;
 }
 
 
-static void cmd_pause(ServerData *d, ClientData *client, List args)
+static const char *cmd_pause(ServerData *d, ClientData *client, List args)
 {
   if (d->fsm->state != ST_ROUND)
-  {
-    send_bad_command(d, client->fd);
-    return;
-  }
+    return "Round not running";
 
-  send_ack(d, client->fd);
   d->continuous_game = 0;
+  return NULL;
 }
 
 
-static void cmd_abort(ServerData *d, ClientData *client, List args)
+static const char *cmd_abort(ServerData *d, ClientData *client, List args)
 {
   if (d->fsm->state != ST_ROUND && d->fsm->state != ST_BEFORE_ROUND)
-  {
-    send_bad_command(d, client->fd);
-    return;
-  }
+    return "Not in game";
 
-  send_ack(d, client->fd);
   d->abort_game = 1;
   fsm_set_next_state(d->fsm, ST_LOBBY);
   fsm_finish_loop(d->fsm);
+  return NULL;
 }
 
-static void cmd_buy(ServerData *d, ClientData *client, List args)
+static const char *cmd_buy(ServerData *d, ClientData *client, List args)
 {
   unsigned int count = list_head(args, unsigned int);
-  double price = list_head(args->next, double);
-  game_request_buy(d, client, count, price);
-}
-
-
-static void cmd_sell(ServerData *d, ClientData *client, List args)
-{
-  unsigned int count = list_head(args, unsigned int);
-  double price = list_head(args->next, double);
-  game_request_sell(d, client, count, price);
+  unsigned int price = list_head(args->next, unsigned int);
+  return game_request_buy(d, client, count, price);
 }
 
 
-static void cmd_produce(ServerData *d, ClientData *client, List args)
+static const char *cmd_sell(ServerData *d, ClientData *client, List args)
 {
   unsigned int count = list_head(args, unsigned int);
-  game_request_produce(d, client, count);
+  unsigned int price = list_head(args->next, unsigned int);
+  return game_request_sell(d, client, count, price);
 }
 
 
-static void cmd_build(ServerData *d, ClientData *client, List args)
+static const char *cmd_produce(ServerData *d, ClientData *client, List args)
 {
   unsigned int count = list_head(args, unsigned int);
-  game_request_build(d, client, count);
+  return game_request_produce(d, client, count);
+}
+
+
+static const char *cmd_build(ServerData *d, ClientData *client, List args)
+{
+  unsigned int count = list_head(args, unsigned int);
+  return game_request_build(d, client, count);
 }
 
 

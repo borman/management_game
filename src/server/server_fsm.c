@@ -112,14 +112,14 @@ void server_fsm_delete(FSM *fsm)
 }
 
 
-void server_send_message(ServerData *d, int client, const char *format, ...)
+void server_send_message(ServerData *d, int fd, const char *format, ...)
 {
   va_list args;
   char buf[MAXREPLYLENGTH];
   va_start(args, format);
   vsnprintf(buf, MAXREPLYLENGTH, format, args);
   va_end(args);
-  socketloop_send(d->loop, client, buf);
+  socketloop_send(d->loop, fd, buf);
 }
 
 void server_send_broadcast(ServerData *d, int client_mask, const char *format, ...)
@@ -135,7 +135,6 @@ void server_send_broadcast(ServerData *d, int client_mask, const char *format, .
       socketloop_send(d->loop, client->fd, buf);
   } FOREACH_END;
 }
-
 
 
 /**

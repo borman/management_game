@@ -23,6 +23,7 @@
 
 #include "core/fsm.h"
 #include "core/socket_loop.h"
+#include "core/c_ext.h"
 
 enum ClientState
 {
@@ -117,8 +118,8 @@ typedef struct ServerData
 FSM *server_fsm_new(SocketLoop *loop);
 void server_fsm_delete(FSM *fsm);
 
-void server_send_message(ServerData *d, int fd, const char *format, ...);
-void server_send_broadcast(ServerData *d, int client_mask, const char *format, ...);
+void server_send_message(ServerData *d, int fd, const char *format, ...) ATTR_PRINTF(3,4);
+void server_send_broadcast(ServerData *d, int client_mask, const char *format, ...) ATTR_PRINTF(3,4);
 
 #endif /* SERVER_FSM_H */
 

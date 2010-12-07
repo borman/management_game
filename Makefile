@@ -19,6 +19,8 @@ DEFINES += USE_LOG_TIME_MARKERS
 DEFINES += USE_LIST_TYPEINFO
 # Print messages in color
 DEFINES += USE_TERMINAL_COLORS
+# Use C extension macros
+DEFINES += USE_C_EXT
 
 # Default rules
 include makefiles/rules.mk

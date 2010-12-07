@@ -23,10 +23,11 @@
 
 #include <stdio.h>
 #include "core/colors.h"
+#include "core/c_ext.h"
 
-void trace(const char *format, ...);
-void message(const char *format, ...);
-void warning(const char *format, ...);
-void fatal(const char *format, ...);
+void trace(const char *format, ...) ATTR_PRINTF(1,2);
+void message(const char *format, ...) ATTR_PRINTF(1,2);
+void warning(const char *format, ...) ATTR_PRINTF(1,2);
+void fatal(const char *format, ...) ATTR_PRINTF(1,2);
 
 #endif /* LOG_H */

@@ -60,8 +60,8 @@ typedef struct GameClientState
   count_t factories;
   count_t raw;
   count_t product;
-  /* List of factories being built */
-  List factories_incomplete; /* List<FactoryRequest *> */
+  /* List *of factories being built */
+  List *factories_incomplete; /* List<FactoryRequest *> */
 } GameClientState;
 
 typedef struct GameClientRequest
@@ -89,7 +89,7 @@ typedef struct ServerData
   FSM *fsm;
 
   SocketLoop *loop;
-  List clients; /* List<ClientData *> */
+  List *clients; /* List<ClientData *> */
 
   /* Current round's number */
   unsigned int round_counter;

@@ -24,7 +24,7 @@
 #include "server/server_fsm.h"
 
 void command_exec(ServerData *d, ClientData *client, 
-    const char *cmd_str, List cmd_args);
+    const char *cmd_str, List *cmd_args);
 
 #endif /* COMMANDS_H */
 

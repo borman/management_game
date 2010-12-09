@@ -41,10 +41,10 @@
 struct SocketLoop
 {
   /* Listening sockets */
-  List listeners;
+  List *listeners;
   
   /* Connection sockets */
-  List clients;
+  List *clients;
 
   /* A flag whether to continue looping */
   volatile sig_atomic_t do_continue;

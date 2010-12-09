@@ -27,7 +27,7 @@
 typedef struct TokenList
 {
   Buffer *buf;
-  List tokens;
+  List *tokens;
 } TokenList;
 
 TokenList *lexer_split(const char *src);

@@ -34,11 +34,11 @@
  * used as an error message
  */
 static const char *do_command_exec(ServerData *d, ClientData *client, 
-    const char *cmd_str, List cmd_args);
+    const char *cmd_str, List *cmd_args);
 
 /* A convenience macro to declare command handlers */
 #define DECLCOMMAND(_name) \
-  static const char *cmd_##_name(ServerData *d, ClientData *client, List args)
+  static const char *cmd_##_name(ServerData *d, ClientData *client, List *args)
 /* A convenience macro to declare commands descriptions */
 #define MKCOMMAND(_nargs, _argt, _cmd, _states) {cmd_##_cmd, _nargs, _argt, #_cmd, _states}
 
@@ -60,7 +60,7 @@ DECLCOMMAND(build);
 
 const struct CommandDescription
 {
-  const char *(*handler)(ServerData *d, ClientData *client, List args);
+  const char *(*handler)(ServerData *d, ClientData *client, List *args);
   int n_args;
   const char *arg_types;
   const char *str;
@@ -95,7 +95,7 @@ const struct CommandDescription
 const unsigned int n_commands = sizeof(commands)/sizeof(struct CommandDescription);
 #undef MKCOMMAND
 
-static int read_uint(const char *str, List *list)
+static int read_uint(const char *str, List **list)
 {
   unsigned int t;
   if (sscanf(str, "%u", &t) != 1)
@@ -105,10 +105,10 @@ static int read_uint(const char *str, List *list)
   return 1;
 }
 
-static int check_args(List *pres, List args, const struct CommandDescription *command)
+static int check_args(List **pres, List *args, const struct CommandDescription *command)
 {
   int i;
-  List res = NULL;
+  List *res = NULL;
   if (list_size(args) != command->n_args)
     return 0;
 
@@ -139,7 +139,7 @@ static int check_args(List *pres, List args, const struct CommandDescription *co
 
 
 void command_exec(ServerData *d, ClientData *client, 
-    const char *cmd_str, List cmd_args)
+    const char *cmd_str, List *cmd_args)
 {
   const char *msg = do_command_exec(d, client, cmd_str, cmd_args);
   if (msg == NULL)
@@ -149,7 +149,7 @@ void command_exec(ServerData *d, ClientData *client,
 }
 
 static const char *do_command_exec(ServerData *d, ClientData *client, 
-    const char *cmd_str, List cmd_args)
+    const char *cmd_str, List *cmd_args)
 {
   unsigned int i;
   for (i=0; i<n_commands; i++)
@@ -159,7 +159,7 @@ static const char *do_command_exec(ServerData *d, ClientData *client,
       if (commands[i].allowed_states & client->state)
       {
         /* Command allowed */
-        List processed_args;
+        List *processed_args;
         if (check_args(&processed_args, cmd_args, &commands[i]))
         {
           /* Command's arguments validated and parsed */
@@ -182,7 +182,7 @@ static const char *do_command_exec(ServerData *d, ClientData *client,
  * Commands' implementation
  */
 
-static const char *cmd_auth(ServerData *d, ClientData *client, List args)
+static const char *cmd_auth(ServerData *d, ClientData *client, List *args)
 {
   char *type = list_head(args, char *);
   char *name = list_head(args->next, char *);
@@ -225,7 +225,7 @@ static const char *cmd_auth(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_quit(ServerData *d, ClientData *client, List args)
+static const char *cmd_quit(ServerData *d, ClientData *client, List *args)
 {
   server_send_message(d, client->fd, "See ya!"); 
   socketloop_drop_client(d->loop, client->fd);
@@ -234,7 +234,7 @@ static const char *cmd_quit(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_ready(ServerData *d, ClientData *client, List args)
+static const char *cmd_ready(ServerData *d, ClientData *client, List *args)
 {
   if (client->state == CL_IN_LOBBY)
   {
@@ -259,7 +259,7 @@ static const char *cmd_ready(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_notready(ServerData *d, ClientData *client, List args)
+static const char *cmd_notready(ServerData *d, ClientData *client, List *args)
 {
   server_set_client_state(d, client, CL_IN_LOBBY);
   server_send_message(d, client->fd, "You are not ready to play."); 
@@ -268,7 +268,7 @@ static const char *cmd_notready(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_lslobby(ServerData *d, ClientData *client, List args)
+static const char *cmd_lslobby(ServerData *d, ClientData *client, List *args)
 {
   FOREACH(ClientData *, item, d->clients)
   {
@@ -282,7 +282,7 @@ static const char *cmd_lslobby(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_lsgame(ServerData *d, ClientData *client, List args)
+static const char *cmd_lsgame(ServerData *d, ClientData *client, List *args)
 {
   FOREACH(ClientData *, item, d->clients)
   {
@@ -298,7 +298,7 @@ static const char *cmd_lsgame(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_start(ServerData *d, ClientData *client, List args)
+static const char *cmd_start(ServerData *d, ClientData *client, List *args)
 {
   count_t n_ready;
   if (d->fsm->state != ST_LOBBY)
@@ -318,7 +318,7 @@ static const char *cmd_start(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_step(ServerData *d, ClientData *client, List args)
+static const char *cmd_step(ServerData *d, ClientData *client, List *args)
 {
   if (d->fsm->state != ST_BEFORE_ROUND)
     return "Game not started or round already running";
@@ -328,7 +328,7 @@ static const char *cmd_step(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_run(ServerData *d, ClientData *client, List args)
+static const char *cmd_run(ServerData *d, ClientData *client, List *args)
 {
   if (d->fsm->state != ST_BEFORE_ROUND)
     return "Game not started or round already running";
@@ -339,7 +339,7 @@ static const char *cmd_run(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_pause(ServerData *d, ClientData *client, List args)
+static const char *cmd_pause(ServerData *d, ClientData *client, List *args)
 {
   if (d->fsm->state != ST_ROUND)
     return "Round not running";
@@ -349,7 +349,7 @@ static const char *cmd_pause(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_abort(ServerData *d, ClientData *client, List args)
+static const char *cmd_abort(ServerData *d, ClientData *client, List *args)
 {
   if (d->fsm->state != ST_ROUND && d->fsm->state != ST_BEFORE_ROUND)
     return "Not in game";
@@ -359,7 +359,7 @@ static const char *cmd_abort(ServerData *d, ClientData *client, List args)
   return NULL;
 }
 
-static const char *cmd_buy(ServerData *d, ClientData *client, List args)
+static const char *cmd_buy(ServerData *d, ClientData *client, List *args)
 {
   unsigned int count = list_head(args, unsigned int);
   unsigned int price = list_head(args->next, unsigned int);
@@ -367,7 +367,7 @@ static const char *cmd_buy(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_sell(ServerData *d, ClientData *client, List args)
+static const char *cmd_sell(ServerData *d, ClientData *client, List *args)
 {
   unsigned int count = list_head(args, unsigned int);
   unsigned int price = list_head(args->next, unsigned int);
@@ -375,14 +375,14 @@ static const char *cmd_sell(ServerData *d, ClientData *client, List args)
 }
 
 
-static const char *cmd_produce(ServerData *d, ClientData *client, List args)
+static const char *cmd_produce(ServerData *d, ClientData *client, List *args)
 {
   unsigned int count = list_head(args, unsigned int);
   return game_request_produce(d, client, count);
 }
 
 
-static const char *cmd_build(ServerData *d, ClientData *client, List args)
+static const char *cmd_build(ServerData *d, ClientData *client, List *args)
 {
   unsigned int count = list_head(args, unsigned int);
   return game_request_build(d, client, count);

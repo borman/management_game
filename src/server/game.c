@@ -290,7 +290,7 @@ static void do_costs(ServerData *d)
   {
     if (client_in_game(client))
     {
-      List factories_incomplete;
+      List *factories_incomplete;
 
       /* Posession cost */
       finance(d, client, EXPENDITURE, "cost", "factory", 

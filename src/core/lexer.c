@@ -53,7 +53,7 @@ typedef enum
 } LexerState;
 
 
-static List make_token_list(Buffer *strings);
+static List *make_token_list(Buffer *strings);
 
 
 /* Lexer FSM main loop */
@@ -161,10 +161,10 @@ void lexer_delete(TokenList *tl)
 
 
 /* Make a list out of a chain of strings. */
-static List make_token_list(Buffer *strings)
+static List *make_token_list(Buffer *strings)
 {
   size_t pos = 0;
-  List list = NULL;
+  List *list = NULL;
 
   while (pos<strings->length)
   {

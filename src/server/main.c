@@ -179,7 +179,7 @@ static void on_incoming_message(SocketLoop *loop, int fd, const char *msg)
   else if (tl->tokens != NULL)
   {
     const char *command = list_head(tl->tokens, char *);
-    List args = tl->tokens->next;
+    List *args = tl->tokens->next;
     FSMEvent event;
     event.type = EV_COMMAND;
     event.fd = fd;

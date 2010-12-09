@@ -25,25 +25,25 @@
 #include "core/list.h"
 #include "core/log.h"
 
-static List list_node_alloc(ListItem default_data);
-static void list_node_free(List node);
+static List *list_node_alloc(ListItem default_data);
+static void list_node_free(List *node);
 
-List list_push_typed(List list, const char *type, ListItem data)
+List *list_push_typed(List *list, const char *type, ListItem data)
 {
-  List new_head = list_node_alloc(data);
+  List *new_head = list_node_alloc(data);
   new_head->type = type;
   new_head->next = list;
   return new_head;
 }
 
-List list_push_back_typed(List list, const char *type, ListItem data)
+List *list_push_back_typed(List *list, const char *type, ListItem data)
 {
-  List element = list_push_typed(NULL, type, data);
+  List *element = list_push_typed(NULL, type, data);
   if (list==NULL)
     return element;
   else
   {
-    List l = list;
+    List *l = list;
     while (l->next != NULL)
       l = l->next;
     l->next = element;
@@ -51,9 +51,9 @@ List list_push_back_typed(List list, const char *type, ListItem data)
   }
 }
 
-List list_pop(List list)
+List *list_pop(List *list)
 {
-  List head;
+  List *head;
 
   assert(list != NULL);
 
@@ -63,12 +63,12 @@ List list_pop(List list)
   return list;
 }
 
-List list_reverse(List list)
+List *list_reverse(List *list)
 {
-  List prev = NULL;
+  List *prev = NULL;
   while (list != NULL)
   {
-    List next = list->next;
+    List *next = list->next;
     list->next = prev;
     prev = list;
     list = next;
@@ -77,7 +77,7 @@ List list_reverse(List list)
 }
 
 
-ListItem list_head_typed(List list, const char *type)
+ListItem list_head_typed(List *list, const char *type)
 {
   assert(list != NULL);
 #ifdef USE_LIST_TYPEINFO
@@ -88,13 +88,13 @@ ListItem list_head_typed(List list, const char *type)
   return list->data;
 }
 
-List list_filter_typed(List list, const char *type, 
+List *list_filter_typed(List *list, const char *type, 
     ListItemPredicate pred, ListItemDestructor destr)
 {
   /* New list's root */
-  List root;  
+  List *root;  
   /* Link to next item */
-  List *link = &root; 
+  List **link = &root; 
   while (list != NULL) 
   { 
     ListItem item = list_head_typed(list, type); 
@@ -118,17 +118,17 @@ List list_filter_typed(List list, const char *type,
 }
 
 
-void list_delete(List list)
+void list_delete(List *list)
 {
   while (list != NULL)
   {
-    List head = list;
+    List *head = list;
     list = list->next;
     list_node_free(head);
   }
 }
 
-size_t list_size(List list)
+size_t list_size(List *list)
 {
   size_t size = 0;
   while (list != NULL)
@@ -144,9 +144,9 @@ size_t list_size(List list)
  * Node allocation
  */
 
-static List list_node_alloc(ListItem default_data)
+static List *list_node_alloc(ListItem default_data)
 {
-  List node = (List) malloc(sizeof(ListNode));
+  List *node = (List *) malloc(sizeof(List));
 
   node->data = default_data;
   node->next = NULL;
@@ -154,7 +154,7 @@ static List list_node_alloc(ListItem default_data)
   return node;
 }
 
-static void list_node_free(List node)
+static void list_node_free(List *node)
 {
   free(node);
 }

@@ -40,13 +40,12 @@
 /* This type is supposed to be able to store data of any scalar type */
 typedef size_t ListItem;
 
-typedef struct ListNode
+typedef struct List
 {
   ListItem data;
   const char *type;
-  struct ListNode *next;
-} ListNode;
-typedef ListNode *List;
+  struct List *next;
+} List;
 
 typedef int (*ListItemPredicate)(ListItem item);
 typedef void (*ListItemDestructor)(ListItem item);
@@ -65,7 +64,7 @@ typedef void (*ListItemDestructor)(ListItem item);
 #define FOREACH(type, var, list) \
 do \
 { \
-  List _list = list; \
+  List *_list = list; \
   while (_list != NULL) \
   { \
     type var = list_head(_list, type); \
@@ -82,44 +81,44 @@ do \
  * Insert a new element before list head.
  * Returns a new list.
  */
-List list_push_typed(List list, const char *type, ListItem data);
+List *list_push_typed(List *list, const char *type, ListItem data);
 /**
  * Insert a new element after its last element.
  * Returns a new list.
  */
-List list_push_back_typed(List list, const char *type, ListItem data);
+List *list_push_back_typed(List *list, const char *type, ListItem data);
 /**
  * Remove list head.
  * Returns a new list.
  */
-List list_pop(List list);
+List *list_pop(List *list);
 /**
  * Reverse list.
  * Returns a new pointer to this list, old pointer becomes invalid.
  */
-List list_reverse(List list);
+List *list_reverse(List *list);
 
 /** 
  * Extract list's head.
  */
-ListItem list_head_typed(List list, const char *type);
+ListItem list_head_typed(List *list, const char *type);
 
 /**
  * Delete items for which predicate(item) evaluates to true.
  * If destr is not NULL, it is called for each item deleted
  */
-List list_filter_typed(List list, const char *type, 
+List *list_filter_typed(List *list, const char *type, 
     ListItemPredicate pred, ListItemDestructor destr);
 
 /** 
  * Free memory used by this list.
  */
-void list_delete(List list);
+void list_delete(List *list);
 
 /**
  * Calculate list size
  */
-size_t list_size(List list);
+size_t list_size(List *list);
 
 #endif /* LIST_H */
 

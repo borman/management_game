@@ -35,7 +35,7 @@ typedef struct FSMEvent
   int fd;
 
   const char *command;
-  List command_args;
+  List *command_args;
 } FSMEvent;
 
 typedef struct FSM

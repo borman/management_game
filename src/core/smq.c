@@ -39,7 +39,7 @@ struct SocketMessageQueue
 {
   size_t current_pos;
   Message *current;
-  List queued;
+  List *queued;
 };
 
 

@@ -124,6 +124,15 @@ void game_start_round(ServerData *d)
 
 void game_remove_player(ServerData *d, ClientData *client)
 {
+  if (client->gcs.factories_incomplete != NULL)
+  {
+    FOREACH(FactoryRequest *, req, client->gcs.factories_incomplete)
+    {
+      free(req);
+    } FOREACH_END;
+    list_delete(client->gcs.factories_incomplete);
+    client->gcs.factories_incomplete = NULL;
+  }
   server_set_client_state(d, client, CL_IN_LOBBY);
   d->n_players--;
   if (d->fsm->state == ST_ROUND && client->state == CL_IN_GAME)

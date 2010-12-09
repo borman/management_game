@@ -26,8 +26,11 @@
 #include <sys/time.h>
 
 #include "core/log.h"
+#include "core/fsm.h"
+#include "server/server_fsm.h"
 
 static void print_log(const char *prefix, const char *format, va_list args);
+static void network_log(const char *format, va_list args);
 
 
 #define DEBUG_FUNC(name, prefix, color) \
@@ -40,8 +43,16 @@ static void print_log(const char *prefix, const char *format, va_list args);
   }  
 
 DEBUG_FUNC(trace,   "[ Trace ]", TERM_FG_CYAN)
-DEBUG_FUNC(message, "[Message]", TERM_FG_WHITE)
 DEBUG_FUNC(warning, "[Warning]", TERM_FG_RED)
+
+void message(const char *format, ...) 
+{ 
+  va_list args; 
+  va_start(args, format); 
+  print_log(TERM_FG_WHITE "[Message]", format, args); 
+  network_log(format, args);
+  va_end(args); 
+}  
 
 void fatal(const char *format, ...)
 {
@@ -73,3 +84,13 @@ static void print_log(const char *prefix, const char *format, va_list args)
   fprintf(stderr, "\n");
 }
 
+extern FSM *server_fsm;
+static void network_log(const char *format, va_list args)
+{
+  ServerData *d;
+  if (server_fsm != NULL)
+  {
+    d = (ServerData *) server_fsm->data;
+    server_send_log_message_v(d, format, args);
+  }
+}

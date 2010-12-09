@@ -112,7 +112,7 @@ void server_fsm_delete(FSM *fsm)
 }
 
 
-void server_send_message(ServerData *d, int fd, const char *format, ...)
+void server_send_reply(ServerData *d, int fd, const char *format, ...)
 {
   va_list args;
   char buf[MAXREPLYLENGTH];
@@ -126,8 +126,9 @@ void server_send_broadcast(ServerData *d, int client_mask, const char *format, .
 {
   va_list args;
   char buf[MAXREPLYLENGTH];
+  strcpy(buf, "+ ");
   va_start(args, format);
-  vsnprintf(buf, MAXREPLYLENGTH, format, args);
+  vsnprintf(buf+2, MAXREPLYLENGTH-2, format, args);
   va_end(args);
   FOREACH(ClientData *, client, d->clients)
   {
@@ -136,6 +137,64 @@ void server_send_broadcast(ServerData *d, int client_mask, const char *format, .
   } FOREACH_END;
 }
 
+void server_send_message(ServerData *d, int fd, 
+    const char *format, ...) 
+{
+  va_list args;
+  char buf[MAXREPLYLENGTH];
+  char format_buf[MAXREPLYLENGTH];
+  snprintf(format_buf, MAXREPLYLENGTH, "+ message Server \"%s\"", format);
+  va_start(args, format);
+  vsnprintf(buf, MAXREPLYLENGTH, format_buf, args);
+  va_end(args);
+  socketloop_send(d->loop, fd, buf);
+}
+
+void server_send_log_message_v(ServerData *d, 
+    const char *format, va_list args)
+{
+  char buf[MAXREPLYLENGTH];
+  char format_buf[MAXREPLYLENGTH];
+  snprintf(format_buf, MAXREPLYLENGTH, "+ message Server \"%s\"", format);
+  vsnprintf(buf, MAXREPLYLENGTH, format_buf, args);
+  FOREACH(ClientData *, client, d->clients)
+  {
+    if (client->state & CL_AUTHENTICATED)
+      socketloop_send(d->loop, client->fd, buf);
+  } FOREACH_END;
+}
+
+void server_set_client_state(ServerData *d, ClientData *client, 
+    enum ClientState state)
+{
+  const char *state_str;
+  client->state = state;
+  switch (state)
+  {
+    case CL_CONNECTED:
+      state_str = "auth";
+      break;
+    case CL_SUPERVISOR:
+      state_str = "super";
+      break;
+    case CL_IN_LOBBY:
+      state_str = "lobby";
+      break;
+    case CL_IN_LOBBY_ACK:
+      state_str = "lobby_ready";
+      break;
+    case CL_IN_GAME:
+      state_str = "game_active";
+      break;
+    case CL_IN_GAME_WAIT:
+      state_str = "game";
+      break;
+    default:
+      state_str = NULL;
+  }
+  if (state_str != NULL)
+    server_send_reply(d, client->fd, "$ %s", state_str);
+}
 
 /**
  * Event handlers
@@ -154,26 +213,12 @@ static void on_event(FSM *fsm, FSMEvent *event)
     case EV_DISCONNECT:
       /* delete client %d */
       drop_client(d, event->fd);
+      if (fsm->state == ST_ROUND || fsm->state == ST_BEFORE_ROUND)
+        game_check_players(d);
       break;
     case EV_COMMAND:
       on_command(fsm, event);
       break;
-  }
-  if ((fsm->state == ST_ROUND || fsm->state == ST_BEFORE_ROUND)
-      && d->n_players == 0)
-  {
-    /* Nobody's left*/
-    message("The game is over.");
-    server_send_broadcast(d, CL_IN_GAME | CL_IN_GAME_WAIT,
-        "game end");
-    fsm_set_next_state(fsm, ST_LOBBY);
-    fsm_finish_loop(fsm);
-  }
-  else if (fsm->state == ST_ROUND && d->n_waitfor == 0)
-  {
-    /* Everybody's ready */
-    fsm_set_next_state(fsm, ST_BEFORE_ROUND);
-    fsm_finish_loop(fsm);
   }
 }
 
@@ -205,11 +250,12 @@ static void lobby_on_exit(FSM *fsm)
   message("The game begins.");
   d->round_counter = 0;
   d->n_players = 0;
+  d->continuous_game = 0;
   FOREACH(ClientData *, client, d->clients)
   {
     if (client->state == CL_IN_LOBBY_ACK)
     {
-      client->state = CL_IN_GAME_WAIT;
+      server_set_client_state(d, client, CL_IN_GAME_WAIT);
       d->n_players++;
     }
   } FOREACH_END;
@@ -223,10 +269,7 @@ static void before_round_on_enter(FSM *fsm)
 {
   ServerData *d = (ServerData *) fsm->data;
   if (d->continuous_game)
-  {
-    fsm_set_next_state(fsm, ST_ROUND);
-    fsm_finish_loop(fsm);
-  }
+    fsm_switch_state(fsm, ST_ROUND);
 }
 
 static void before_round_on_exit(FSM *fsm)
@@ -243,7 +286,7 @@ static void round_on_enter(FSM *fsm)
   FOREACH(ClientData *, client, d->clients)
   {
     if (client->state == CL_IN_GAME_WAIT)
-      client->state = CL_IN_GAME;
+      server_set_client_state(d, client, CL_IN_GAME);
   } FOREACH_END;
   d->n_waitfor = d->n_players;
   game_start_round(d);
@@ -266,7 +309,6 @@ static ClientData *new_client(int fd)
 {
   ClientData *client = (ClientData *) calloc(1, sizeof(ClientData));
   client->fd = fd;
-  client->state = CL_CONNECTED;
   client->name = NULL;
   return client;
 }
@@ -295,9 +337,10 @@ static void delete_client(ClientData *client)
 static void accept_client(ServerData *d, int fd)
 {
   /* new client */
-  d->clients = list_push(d->clients, ClientData *, new_client(fd));
-  server_send_message(d, fd, 
-      "message Server \"Hello there! Please, identify yourself.\"");
+  ClientData *client = new_client(fd);
+  server_set_client_state(d, client, CL_CONNECTED);
+  d->clients = list_push(d->clients, ClientData *, client);
+  server_send_message(d, fd, "Hello there! Please, identify yourself.");
 }
 
 static int client_is_dead(ListItem item)
@@ -322,13 +365,11 @@ static void drop_client(ServerData *d, int fd)
    else if (client->state & (CL_IN_GAME | CL_IN_GAME_WAIT))
    {
      message("%s has left the game.", client->name);
-     d->n_players--;
-     if (client->state == CL_IN_GAME)
-       d->n_waitfor--;
+     game_remove_player(d, client);
    }
   }
 
-  client->state = CL_DEAD;
+  server_set_client_state(d, client, CL_DEAD);
   d->clients = list_filter(d->clients, ClientData *,
       client_is_dead, client_destr);
 }

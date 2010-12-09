@@ -65,8 +65,7 @@ struct FSMState
 void fsm_init(FSM *fsm, int init_state);
 void fsm_event(FSM *fsm, FSMEvent *event);
 
-void fsm_finish_loop(FSM *fsm);
-void fsm_set_next_state(FSM *fsm, int state);
+void fsm_switch_state(FSM *fsm, int state);
 
 #endif /* FSM_H */
 

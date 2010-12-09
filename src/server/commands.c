@@ -41,10 +41,6 @@ static const char *do_command_exec(ServerData *d, ClientData *client,
   static const char *cmd_##_name(ServerData *d, ClientData *client, List args)
 /* A convenience macro to declare commands descriptions */
 #define MKCOMMAND(_nargs, _argt, _cmd, _states) {cmd_##_cmd, _nargs, _argt, #_cmd, _states}
-/* A shorthand for the set of all "authenticated" states */
-#define CL_VALID (CL_SUPERVISOR \
-    | CL_IN_LOBBY | CL_IN_LOBBY_ACK \
-    | CL_IN_GAME | CL_IN_GAME_WAIT)
 
 DECLCOMMAND(auth);
 DECLCOMMAND(quit);
@@ -79,9 +75,9 @@ const struct CommandDescription
   MKCOMMAND(0, "",   notready,    CL_IN_LOBBY_ACK),
 
   /* General information commands. Can be used at any moment of time */
-  MKCOMMAND(0, "",   quit,        CL_VALID),
-  MKCOMMAND(0, "",   lslobby,     CL_VALID),
-  MKCOMMAND(0, "",   lsgame,      CL_VALID),
+  MKCOMMAND(0, "",   quit,        CL_AUTHENTICATED),
+  MKCOMMAND(0, "",   lslobby,     CL_AUTHENTICATED),
+  MKCOMMAND(0, "",   lsgame,      CL_AUTHENTICATED),
 
   /* Game flow control */
   MKCOMMAND(0, "",   start,       CL_SUPERVISOR),
@@ -147,9 +143,9 @@ void command_exec(ServerData *d, ClientData *client,
 {
   const char *msg = do_command_exec(d, client, cmd_str, cmd_args);
   if (msg == NULL)
-    server_send_message(d, client->fd, "ack");
+    server_send_reply(d, client->fd, "ack");
   else
-    server_send_message(d, client->fd, "fail \"%s\"", msg);
+    server_send_reply(d, client->fd, "fail \"%s\"", msg);
 }
 
 static const char *do_command_exec(ServerData *d, ClientData *client, 
@@ -194,38 +190,44 @@ static const char *cmd_auth(ServerData *d, ClientData *client, List args)
   if (strlen(name)>MAXNAMELENGTH)
   {
     server_send_message(d, client->fd,
-        "message Server \"The length of your name must not exceed %d characters\"",
+        "The length of your name must not exceed %d characters",
         MAXNAMELENGTH); 
     return "Name too long";
   } 
-  else if (strcmp(type, "player") == 0)
-  {
-    client->state = CL_IN_LOBBY;
-    client->name = strdup(name);
-    server_send_message(d, client->fd,
-        "message Server \"Welcome to the lobby, %.100s\"",
-        client->name); 
-    message("%s has entered the lobby.", client->name);
+  else {
+    FOREACH(ClientData *, client, d->clients)
+    {
+      if (client->name != NULL && strcmp(client->name, name) == 0)
+        return "Name already used";
+    } FOREACH_END;
+    if (strcmp(type, "player") == 0)
+    {
+      server_set_client_state(d, client, CL_IN_LOBBY);
+      client->name = strdup(name);
+      server_send_message(d, client->fd,
+          "Welcome to the lobby, %.100s",
+          client->name); 
+      message("%s has entered the lobby.", client->name);
+    }
+    else if (strcmp(type, "super") == 0)
+    {
+      server_set_client_state(d, client, CL_SUPERVISOR);
+      client->name = strdup(name);
+      server_send_message(d, client->fd,
+          "Hi, %.100s, take your seat. I'm at your service.",
+          client->name); 
+      message("%s has connected as a supervisor", client->name);
+    }
+    else
+      return "Bad client type";
   }
-  else if (strcmp(type, "super") == 0)
-  {
-    client->state = CL_SUPERVISOR;
-    client->name = strdup(name);
-    server_send_message(d, client->fd,
-        "message Server \"Hi, %.100s, take your seat. I'm at your service.\"",
-        client->name); 
-    message("%s has connected as a supervisor", client->name);
-  }
-  else
-    return "Bad client type";
   return NULL;
 }
 
 
 static const char *cmd_quit(ServerData *d, ClientData *client, List args)
 {
-  server_send_message(d, client->fd, 
-      "message Server \"See ya!\""); 
+  server_send_message(d, client->fd, "See ya!"); 
   socketloop_drop_client(d->loop, client->fd);
   /* Client will get disconnected somewhat later (asynchronously) */
   return NULL;
@@ -236,20 +238,22 @@ static const char *cmd_ready(ServerData *d, ClientData *client, List args)
 {
   if (client->state == CL_IN_LOBBY)
   {
-    client->state = CL_IN_LOBBY_ACK;
+    server_set_client_state(d, client, CL_IN_LOBBY_ACK);
     server_send_message(d, client->fd, 
-        "message Server \"You are ready to play. "
-        "Please wait for the game to start\""); 
+        "You are ready to play. "
+        "Please wait for the game to start"); 
     message("%s is ready to play.", client->name);
   }
   else if (client->state == CL_IN_GAME)
   {
-    client->state = CL_IN_GAME_WAIT;
+    server_set_client_state(d, client, CL_IN_GAME_WAIT);
     server_send_message(d, client->fd,
-        "message Server \"Your turn is over. "
-        "Please wait for other players to get ready.\"");
+        "Your turn is over. "
+        "Please wait for other players to get ready.");
     message("%s has finished his turn.", client->name);
     d->n_waitfor--;
+    if (d->n_waitfor == 0)
+      fsm_switch_state(d->fsm, ST_BEFORE_ROUND);
   }
   return NULL;
 }
@@ -257,9 +261,8 @@ static const char *cmd_ready(ServerData *d, ClientData *client, List args)
 
 static const char *cmd_notready(ServerData *d, ClientData *client, List args)
 {
-  client->state = CL_IN_LOBBY;
-  server_send_message(d, client->fd, 
-      "message Server \"You are not ready to play.\""); 
+  server_set_client_state(d, client, CL_IN_LOBBY);
+  server_send_message(d, client->fd, "You are not ready to play."); 
   message("%s is not ready to play.", client->name);
   return NULL;
 }
@@ -267,49 +270,50 @@ static const char *cmd_notready(ServerData *d, ClientData *client, List args)
 
 static const char *cmd_lslobby(ServerData *d, ClientData *client, List args)
 {
-  server_send_message(d, client->fd, 
-      "lslobby begin");
   FOREACH(ClientData *, item, d->clients)
   {
     if (item->state & (CL_IN_LOBBY | CL_IN_LOBBY_ACK))
-      server_send_message(d, client->fd, 
-          "lslobby item \"%s\" %c",
+      server_send_reply(d, client->fd, 
+          "item \"%s\" %c",
           item->name,
           item->state==CL_IN_LOBBY?'-':'+');
   } FOREACH_END;
-  server_send_message(d, client->fd, 
-      "lslobby end");
   return NULL;
 }
 
 
 static const char *cmd_lsgame(ServerData *d, ClientData *client, List args)
 {
-  server_send_message(d, client->fd, 
-      "lsgame begin");
   FOREACH(ClientData *, item, d->clients)
   {
     if (item->state & (CL_IN_GAME | CL_IN_GAME_WAIT))
-      server_send_message(d, client->fd, 
-          "lsgame item \"%s\" %c %d %d %d %d",
+      server_send_reply(d, client->fd, 
+          "item \"%s\" %c %d %d %d %d",
           item->name,
           item->state==CL_IN_GAME?'-':'+',
           item->gcs.money, item->gcs.factories,
           item->gcs.raw, item->gcs.product);
   } FOREACH_END;
-  server_send_message(d, client->fd,
-      "lsgame end");
   return NULL;
 }
 
 
 static const char *cmd_start(ServerData *d, ClientData *client, List args)
 {
+  count_t n_ready;
   if (d->fsm->state != ST_LOBBY)
     return "Game already started";
 
-  fsm_set_next_state(d->fsm, ST_BEFORE_ROUND);
-  fsm_finish_loop(d->fsm);
+  n_ready = 0;
+  FOREACH(ClientData *, client, d->clients)
+  {
+    if (client->state == CL_IN_LOBBY_ACK)
+      n_ready++;
+  } FOREACH_END; 
+  if (n_ready < 2)
+    return "Too few players ready. Need at least 2.";
+
+  fsm_switch_state(d->fsm, ST_BEFORE_ROUND);
   return NULL;
 }
 
@@ -319,8 +323,7 @@ static const char *cmd_step(ServerData *d, ClientData *client, List args)
   if (d->fsm->state != ST_BEFORE_ROUND)
     return "Game not started or round already running";
 
-  fsm_set_next_state(d->fsm, ST_ROUND);
-  fsm_finish_loop(d->fsm);
+  fsm_switch_state(d->fsm, ST_ROUND);
   return NULL;
 }
 
@@ -331,8 +334,7 @@ static const char *cmd_run(ServerData *d, ClientData *client, List args)
     return "Game not started or round already running";
 
   d->continuous_game = 1;
-  fsm_set_next_state(d->fsm, ST_ROUND);
-  fsm_finish_loop(d->fsm);
+  fsm_switch_state(d->fsm, ST_ROUND);
   return NULL;
 }
 
@@ -353,8 +355,7 @@ static const char *cmd_abort(ServerData *d, ClientData *client, List args)
     return "Not in game";
 
   d->abort_game = 1;
-  fsm_set_next_state(d->fsm, ST_LOBBY);
-  fsm_finish_loop(d->fsm);
+  fsm_switch_state(d->fsm, ST_LOBBY);
   return NULL;
 }
 

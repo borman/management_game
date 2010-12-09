@@ -46,8 +46,6 @@ static void on_client_connect(SocketLoop *loop, int fd);
 static void on_incoming_message(SocketLoop *loop, int fd, const char *msg);
 static void on_client_disconnect(SocketLoop *loop, int fd);
 
-
-SocketLoop *main_loop;
 const SocketLoopEventHandler event_handler = 
 {
   on_client_connect,
@@ -55,10 +53,11 @@ const SocketLoopEventHandler event_handler =
   on_client_disconnect
 };
 
+SocketLoop *main_loop;
+FSM *server_fsm;
 
 int main()
 {
-  FSM *server_fsm;
   int tcp_ok;
   int unix_ok;
 
@@ -87,7 +86,8 @@ int main()
   
   socketloop_delete(main_loop);
   server_fsm_delete(server_fsm);
-  message("Server shutdown");
+  server_fsm = NULL;
+  message("Server shutdown complete");
   return 0;
 }
 
@@ -147,6 +147,7 @@ static int listen_unix(SocketLoop *loop)
 
 static void terminate_handler(int sig)
 {
+  message("Server shutdown");
   socketloop_stop(main_loop);
   signal(sig, terminate_handler);
 }

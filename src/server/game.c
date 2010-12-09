@@ -21,6 +21,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "core/log.h"
 #include "server/game.h"
 
@@ -62,6 +63,7 @@ static const struct MarketState market_states[N_MARKET_STATES] =
 /* Financial operations */
 static void do_finances(ServerData *d);
 static void do_costs(ServerData *d);
+static void do_kill_bankrupts(ServerData *d);
 static void finance(ServerData *d, ClientData *client, enum DealType type,
    const char *purpose_major, const char *purpose_minor, 
    count_t count, price_t price);
@@ -80,8 +82,6 @@ static int dice(const double *probs, unsigned int count);
 
 void game_start(ServerData *d)
 {
-  server_send_broadcast(d, CL_IN_GAME_WAIT, 
-      "game start");
   d->market_state_number = INIT_MARKET_STATE;
   setup_state(d);
   /* Init players' states */
@@ -98,8 +98,10 @@ void game_finish_round(ServerData *d)
   server_send_broadcast(d, CL_IN_GAME_WAIT,
       "round end %u", 
       d->round_counter);
-  do_finances(d);
   update_market_state(d);
+  do_finances(d);
+  do_kill_bankrupts(d);
+  game_check_players(d);
 }
 
 void game_start_round(ServerData *d)
@@ -118,6 +120,36 @@ void game_start_round(ServerData *d)
     if (client_in_game(client))
       memcpy(&client->req, &empty_req, sizeof(GameClientRequest));
   } FOREACH_END;
+}
+
+void game_remove_player(ServerData *d, ClientData *client)
+{
+  server_set_client_state(d, client, CL_IN_LOBBY);
+  d->n_players--;
+  if (d->fsm->state == ST_ROUND && client->state == CL_IN_GAME)
+    d->n_waitfor--;
+}
+
+void game_check_players(ServerData *d)
+{
+  if (d->n_players == 0)
+  {
+    message("The game is over and nobody is left alive.");
+    fsm_switch_state(d->fsm, ST_LOBBY);
+  }
+  else if (d->n_players == 1)
+  {
+    ClientData *winner = NULL;
+    FOREACH(ClientData *, client, d->clients)
+    {
+      if (client_in_game(client))
+        winner = client;
+    } FOREACH_END;
+    assert(winner != NULL);
+    message("The game is over. And the winner is... %s!", winner->name);
+    game_remove_player(d, winner);
+    fsm_switch_state(d->fsm, ST_LOBBY);
+  }
 }
 
 const char *game_request_buy(ServerData *d, ClientData *client, 
@@ -247,6 +279,7 @@ static void do_finances(ServerData *d)
   }
 
   do_costs(d);
+  free(offers);
   /* kill bankrupts */
 }
 
@@ -297,6 +330,18 @@ static void do_costs(ServerData *d)
           list_push_back(factories_incomplete, FactoryRequest *, req);
       }
       client->gcs.factories_incomplete = factories_incomplete;
+    }
+  } FOREACH_END;
+}
+
+static void do_kill_bankrupts(ServerData *d)
+{
+  FOREACH(ClientData *, client, d->clients)
+  {
+    if (client_in_game(client) && client->gcs.money<0)
+    {
+      message("%s is a bankrupt. He has to leave the game.", client->name);
+      game_remove_player(d, client);
     }
   } FOREACH_END;
 }

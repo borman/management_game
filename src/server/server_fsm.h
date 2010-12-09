@@ -21,6 +21,7 @@
 #ifndef SERVER_FSM_H
 #define SERVER_FSM_H
 
+#include <stdarg.h>
 #include "core/fsm.h"
 #include "core/socket_loop.h"
 #include "core/c_ext.h"
@@ -29,8 +30,17 @@
 FSM *server_fsm_new(SocketLoop *loop);
 void server_fsm_delete(FSM *fsm);
 
-void server_send_message(ServerData *d, int fd, const char *format, ...) ATTR_PRINTF(3,4);
-void server_send_broadcast(ServerData *d, int client_mask, const char *format, ...) ATTR_PRINTF(3,4);
+void server_set_client_state(ServerData *d, ClientData *client, 
+    enum ClientState state);
+
+void server_send_reply(ServerData *d, int fd, 
+    const char *format, ...) ATTR_PRINTF(3,4);
+void server_send_message(ServerData *d, int fd, 
+    const char *format, ...) ATTR_PRINTF(3,4);
+void server_send_broadcast(ServerData *d, int client_mask, 
+    const char *format, ...) ATTR_PRINTF(3,4);
+void server_send_log_message_v(ServerData *d, 
+    const char *format, va_list args);
 
 #endif /* SERVER_FSM_H */
 

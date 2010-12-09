@@ -25,15 +25,10 @@ void fsm_event(FSM *fsm, FSMEvent *event)
 }
 
 
-void fsm_finish_loop(FSM *fsm)
-{
-  fsm->loop_finished = 1;
-}
-
-
-void fsm_set_next_state(FSM *fsm, int state)
+void fsm_switch_state(FSM *fsm, int state)
 {
   fsm->next_state = state;
+  fsm->loop_finished = 1;
 }
 
 

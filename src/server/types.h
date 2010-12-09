@@ -18,7 +18,11 @@ enum ClientState
   CL_IN_LOBBY_ACK        = 0x08,
   CL_IN_GAME             = 0x10,
   CL_IN_GAME_WAIT        = 0x20,
-  CL_DEAD                = 0x40
+  CL_DEAD                = 0x40,
+  /* A shorthand for the set of all "authenticated" states */
+  CL_AUTHENTICATED       = CL_SUPERVISOR 
+    | CL_IN_LOBBY | CL_IN_LOBBY_ACK 
+    | CL_IN_GAME  | CL_IN_GAME_WAIT
 };
 
 enum ServerState

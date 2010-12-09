@@ -1,0 +1,15 @@
+A connection stream is a multiplex of 3 line streams:
+
+1. Command stream. Commands are executed in the same order as they are sent.
+  Execution of each command ends with 'ack' or 'fail' (or 'fail <message>')
+  <- <command>
+  -> <command output>
+  -> 'ack' / 'fail'
+
+2. Message stream. Messages should be considered unsolicited and (mostly) informational
+  -> '+' <info-message>
+
+3. State changes. Messages on this channel are unsolicited and reflect client state changes.
+  -> '$' <new state>
+
+vim: tw=80

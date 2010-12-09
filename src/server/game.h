@@ -28,6 +28,10 @@ void game_start(ServerData *d);
 void game_start_round(ServerData *d);
 void game_finish_round(ServerData *d);
 
+/* Check for game over condition */
+void game_check_players(ServerData *d);
+void game_remove_player(ServerData *d, ClientData *client);
+
 const char *game_request_buy(ServerData *d, ClientData *client, 
     count_t count, price_t price);
 const char *game_request_sell(ServerData *d, ClientData *client, 

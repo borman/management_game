@@ -38,7 +38,7 @@
  */
 
 /* This type is supposed to be able to store data of any scalar type */
-typedef uintmax_t ListItem;
+typedef size_t ListItem;
 
 typedef struct ListNode
 {
@@ -52,16 +52,15 @@ typedef int (*ListItemPredicate)(ListItem item);
 typedef void (*ListItemDestructor)(ListItem item);
 
 #if defined(USE_LIST_TYPEINFO) 
-# define list_push(list, type, data) (list_push_typed(list, #type, (ListItem)(data)))
-# define list_push_back(list, type, data) (list_push_back_typed(list, #type, (ListItem)(data)))
-# define list_head(list, type)       ((type)list_head_typed(list, #type))
-# define list_filter(list, type, pred, destr) (list_filter_typed(list, #type, pred, destr))
+# define L_TYPE(type) #type
 #else
-# define list_push(list, type, data) (list_push_typed(list, NULL, (ListItem)(data)))
-# define list_push_back(list, type, data) (list_push_back_typed(list, NULL, (ListItem)(data)))
-# define list_head(list, type)       ((type)list_head_typed(list, NULL))
-# define list_filter(list, type, pred, destr) (list_filter_typed(list, NULL, pred, destr))
+# define L_TYPE(type) NULL
 #endif
+
+#define list_push(list, type, data) (list_push_typed(list, L_TYPE(type), (ListItem)(data)))
+#define list_push_back(list, type, data) (list_push_back_typed(list, L_TYPE(type), (ListItem)(data)))
+#define list_head(list, type)       ((type)list_head_typed(list, L_TYPE(type)))
+#define list_filter(list, type, pred, destr) (list_filter_typed(list, L_TYPE(type), pred, destr))
 
 #define FOREACH(type, var, list) \
 do \

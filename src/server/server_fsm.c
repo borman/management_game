@@ -143,7 +143,7 @@ void server_send_message(ServerData *d, int fd,
   va_list args;
   char buf[MAXREPLYLENGTH];
   char format_buf[MAXREPLYLENGTH];
-  snprintf(format_buf, MAXREPLYLENGTH, "+ message Server \"%s\"", format);
+  snprintf(format_buf, MAXREPLYLENGTH, "> Server \"%s\"", format);
   va_start(args, format);
   vsnprintf(buf, MAXREPLYLENGTH, format_buf, args);
   va_end(args);
@@ -155,7 +155,7 @@ void server_send_log_message_v(ServerData *d,
 {
   char buf[MAXREPLYLENGTH];
   char format_buf[MAXREPLYLENGTH];
-  snprintf(format_buf, MAXREPLYLENGTH, "+ message Server \"%s\"", format);
+  snprintf(format_buf, MAXREPLYLENGTH, "> Server \"%s\"", format);
   vsnprintf(buf, MAXREPLYLENGTH, format_buf, args);
   FOREACH(ClientData *, client, d->clients)
   {

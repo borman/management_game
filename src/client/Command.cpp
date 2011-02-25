@@ -1,5 +1,6 @@
 #include <cstring>
 #include <cctype>
+#include <cassert>
 
 #include "Command.h"
 #include "Exceptions.h"
@@ -13,6 +14,12 @@ class SimpleTextStream
     SimpleTextStream &operator<<(char c)
     {
       data[p++] = c;
+      return *this;
+    }
+    SimpleTextStream &operator<<(const char *str)
+    {
+      strcpy(data+p, str);
+      p += strlen(str);
       return *this;
     }
   private:
@@ -141,4 +148,32 @@ void Command::fixType()
       words[i] = words[i+1];
     n_words--;
   }
+}
+
+
+OutCommand::OutCommand(const char *str1, const char *str2, 
+    const char *str3, const char *str4, const char *str5)
+{
+  assert(str1 != NULL);
+
+  const char *strs[] = {str1, str2, str3, str4, str5};
+  size_t total_length = 1; // '\n'
+  for (size_t i=0; i<5; i++)
+    if (strs[i] != NULL)
+      total_length += strlen(strs[i]) + 3; // + '"" '
+
+  str = new char[total_length+1];
+  SimpleTextStream out(str);
+
+  for (size_t i=0; i<5; i++)
+    if (strs[i] != NULL)
+    {
+      out << '"' << strs[i] << '"' << ' ';
+    }
+  out << '\n';
+}
+
+OutCommand::~OutCommand()
+{
+  delete[] str;
 }

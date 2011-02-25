@@ -39,4 +39,16 @@ class Command
     Type cmd_type;
 };
 
+class OutCommand
+{
+  public:
+    OutCommand(const char *str1, const char *str2 = NULL, const char *str3 = NULL, 
+               const char *str4 = NULL, const char *str5 = NULL);
+    ~OutCommand();
+
+    const char *c_str() const { return str; }
+  private:
+    char *str;
+};
+
 #endif // COMMAND_H

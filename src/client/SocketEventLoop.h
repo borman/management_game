@@ -24,4 +24,4 @@ class SocketEventLoop
     TextBuffer in_buffer;
 };
 
-#endif // ESOCKETEVENTLOOP_H
+#endif // SOCKETEVENTLOOP_H

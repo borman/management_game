@@ -45,7 +45,9 @@ void Connection::onStateChange(const Command &cmd)
   printf("State >> %s\n", cmd[0]);
 
   if (0 == strcmp(cmd[0], "auth"))
-    send("auth player Bot\n");
+    send(OutCommand("auth", "player", "Bot").c_str());
+  else if (0 == strcmp(cmd[0], "lobby"))
+    send(OutCommand("ready").c_str());
 }
 
 void Connection::onGameData(const Command &cmd)

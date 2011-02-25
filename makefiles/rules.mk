@@ -7,8 +7,11 @@ CFLAGS += $(addprefix -I,$(INCLUDEPATH))
 CFLAGS += $(addprefix -D,$(DEFINES))
 CXXFLAGS += $(addprefix -I,$(INCLUDEPATH))
 CXXFLAGS += $(addprefix -D,$(DEFINES))
-OBJECTS := $(patsubst %.c,$(OBJDIR)/%.o,$(SOURCES))
-DEPENDS := $(patsubst %.c,$(DEPDIR)/%.d,$(SOURCES))
+
+SOURCES_C := $(filter %.c,$(SOURCES))
+SOURCES_CXX := $(filter %.cpp,$(SOURCES))
+OBJECTS := $(addprefix $(OBJDIR)/,$(SOURCES_C:%.c=%.o) $(SOURCES_CXX:%.cpp=%.o))
+DEPENDS := $(addprefix $(DEPDIR)/,$(SOURCES_C:%.c=%.d) $(SOURCES_CXX:%.cpp=%.d))
 
 GENERATED := $(TARGET) 
 
@@ -26,13 +29,21 @@ $(OBJDIR)/%.o: %.c
 	@echo -e "\tCC\t$<"
 	$(A)$(CC) $(CFLAGS) -o $@ -c $<
 
+$(OBJDIR)/%.o: %.cpp
+	@echo -e "\tCXX\t$<"
+	$(A)$(CXX) $(CXXFLAGS) -o $@ -c $<
+
 $(DEPDIR)/%.d: %.c
 	@echo -e "\tDEP\t$<"
 	$(A)$(CC) $(CFLAGS) -o $@ -MT "$(OBJDIR)/$*.o" -MM $< 
 
+$(DEPDIR)/%.d: %.cpp
+	@echo -e "\tDEP\t$<"
+	$(A)$(CXX) $(CXXFLAGS) -o $@ -MT "$(OBJDIR)/$*.o" -MM $< 
+
 $(TARGET): $(OBJECTS)
 	@echo -e "\tLD\t$^"
-	$(A)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(A)$(LINK) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 $(OBJECTS): Makefile | $(OBJDIR)
 

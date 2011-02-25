@@ -1,6 +1,8 @@
 #ifndef TEXTBUFFER_H
 #define TEXTBUFFER_H
 
+#include <cstddef>
+
 class TextBuffer
 {
   public:
@@ -8,6 +10,7 @@ class TextBuffer
     ~TextBuffer();
 
     TextBuffer &operator<<(const char *str);
+    TextBuffer &operator<<(char c);
 
     void clear() { size = 0; }
 

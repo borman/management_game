@@ -1,6 +1,8 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
+#include <cerrno>
+
 struct Exception 
 {
   Exception(const char *text)
@@ -14,15 +16,16 @@ struct OutOfBoundsException: Exception
   OutOfBoundsException(const char *text): Exception(text) {}
 };
 
-struct ParseException: Exception
+struct ParserException: Exception
 {
-  ParseException(const char *text): Exception(text) {}
+  ParserException(const char *text): Exception(text) {}
 };
 
 struct SocketException: Exception
 {
-  SocketException(const char *text): Exception(text);
-}
+  SocketException(const char *text): Exception(text), err(errno) {}
+  int err;
+};
 
 #endif // EXCEPTIONS_H
 

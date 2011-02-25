@@ -4,7 +4,7 @@ SOURCES := $(notdir $(wildcard $(addsuffix /*.cpp,$(SOURCE_DIRS))))
 TARGET := management-bot
 INCLUDEPATH = src
 
-vpath %.c $(SOURCE_DIRS)
+vpath %.cpp $(SOURCE_DIRS)
 vpath %.h $(SOURCE_DIRS)
 
 # Default config

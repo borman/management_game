@@ -1,6 +1,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include <cstddef>
+
 /** Command class
  *
  * Stores a game protocol line broken into words
@@ -16,7 +18,7 @@ class Command
     const char *operator[](size_t index) const;
 
   private:
-    Command(const Command &cmd) {}; // Disabled copy
+    Command(const Command &) {} // Disabled copy
     void doParse(const char *str);
 
     char *data;

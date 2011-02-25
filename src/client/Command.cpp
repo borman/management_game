@@ -1,3 +1,6 @@
+#include <cstring>
+#include <cctype>
+
 #include "Command.h"
 #include "Exceptions.h"
 
@@ -10,6 +13,7 @@ class SimpleTextStream
     SimpleTextStream &operator<<(char c)
     {
       data[p++] = c;
+      return *this;
     }
   private:
     char *data;

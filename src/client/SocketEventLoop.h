@@ -1,6 +1,8 @@
 #ifndef SOCKETEVENTLOOP_H
 #define SOCKETEVENTLOOP_H
 
+#include "TextBuffer.h"
+
 class SocketEventLoop
 {
   public:

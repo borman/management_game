@@ -1,0 +1,16 @@
+# Target description
+SOURCE_DIRS := src/client
+SOURCES := $(notdir $(wildcard $(addsuffix /*.cpp,$(SOURCE_DIRS))))
+TARGET := management-bot
+INCLUDEPATH = src
+
+vpath %.c $(SOURCE_DIRS)
+vpath %.h $(SOURCE_DIRS)
+
+# Default config
+include makefiles/config.mk
+
+DEFINES += _POSIX_C_SOURCE=201011
+
+# Default rules
+include makefiles/rules.mk

@@ -5,6 +5,8 @@ DEPDIR := build/dep
 
 CFLAGS += $(addprefix -I,$(INCLUDEPATH))
 CFLAGS += $(addprefix -D,$(DEFINES))
+CXXFLAGS += $(addprefix -I,$(INCLUDEPATH))
+CXXFLAGS += $(addprefix -D,$(DEFINES))
 OBJECTS := $(patsubst %.c,$(OBJDIR)/%.o,$(SOURCES))
 DEPENDS := $(patsubst %.c,$(DEPDIR)/%.d,$(SOURCES))
 

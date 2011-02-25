@@ -23,6 +23,7 @@ class SimpleTextStream
 Command::Command(const char *str)
 {
   doParse(str);
+  fixType();
 }
 
 Command::~Command()
@@ -110,5 +111,34 @@ void Command::doParse(const char *src)
   {
     words[i] = data+p;
     p += strlen(data+p) + 1;
+  }
+}
+
+void Command::fixType()
+{
+  cmd_type = Regular;
+  if (n_words>0 && strlen(words[0])==1)
+  {
+    switch (words[0][0])
+    {
+      case '>':
+        cmd_type = TextMessage;
+        break;
+      case '$':
+        cmd_type = StateChange;
+        break;
+      case '+':
+        cmd_type = GameData;
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (cmd_type != Regular)
+  {
+    for (size_t i=0; i<n_words-1; i++)
+      words[i] = words[i+1];
+    n_words--;
   }
 }

@@ -9,6 +9,7 @@ extern "C"
 }
 #include <cerrno>
 #include <cstdio>
+#include <cstring>
 
 #include "SocketEventLoop.h"
 #include "Exceptions.h"
@@ -46,7 +47,18 @@ void SocketEventLoop::run()
 
 void SocketEventLoop::send(const char *text)
 {
-  (void)text;
+  size_t length = strlen(text);
+  size_t total_sent = 0;
+  while (total_sent < length)
+  {
+    ssize_t nsent = ::write(sock_fd, text+total_sent, length-total_sent);
+    if (nsent > 0)
+      total_sent += nsent;
+    else if (-1 == nsent)
+      throw SocketException("send");
+    else
+      throw SocketException("send:eof");
+  }
 }
 
 void SocketEventLoop::readNewData()

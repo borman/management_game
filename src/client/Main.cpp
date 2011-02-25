@@ -1,14 +1,14 @@
 #include <cstdio>
 #include <cstring>
 
-#include "SocketEventLoop.h"
+#include "Connection.h"
 #include "Exceptions.h"
 
 int main()
 {
   try
   {
-    SocketEventLoop loop("127.0.0.1", 8982);
+    Connection loop("127.0.0.1", 8982);
     loop.run();
   }
   catch (SocketException e)

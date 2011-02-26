@@ -1,14 +1,14 @@
 #include <cstdio>
 #include <cstring>
 
-#include "Connection.h"
+#include "BotSession.h"
 #include "Exceptions.h"
 
 int main()
 {
   try
   {
-    Connection loop("127.0.0.1", 8982);
+    BotSession loop("127.0.0.1", 8982);
     loop.run();
   }
   catch (SocketException e)

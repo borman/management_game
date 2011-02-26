@@ -1,22 +1,26 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include "SocketEventLoop.h"
-#include "Command.h"
+#include "TextBuffer.h"
+#include "Stanza.h"
+#include "StanzaQueue.h"
 
-class Connection: public SocketEventLoop
+class Connection
 {
   public:
     Connection(const char *host, short port);
     ~Connection();
-  protected:
-    virtual void onTextMessage(const Command &cmd);
-    virtual void onStateChange(const Command &cmd);
-    virtual void onGameData(const Command &cmd);
 
-    // reimplemented from SocketEventLoop
-    virtual void onLineReceived(const char *line); 
+    Connection &operator<<(const MakeStanza &stanza);
+    Connection &operator>>(Stanza *&stanza);
+
+  private:
+    void connect(const char *host, short port);
+    void readMoreData();
+
+    int sock_fd;
+    TextBuffer in_buffer;
+    StanzaQueue in_queue;
 };
 
 #endif // CONNECTION_H
-

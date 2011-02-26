@@ -2,7 +2,7 @@
 #include <cctype>
 #include <cassert>
 
-#include "Command.h"
+#include "Stanza.h"
 #include "Exceptions.h"
 
 class SimpleTextStream
@@ -27,26 +27,31 @@ class SimpleTextStream
     size_t p;
 };
 
-Command::Command(const char *str)
+Stanza::Stanza(const char *str)
 {
   doParse(str);
   fixType();
 }
 
-Command::~Command()
+Stanza::~Stanza()
 {
   delete[] data;
   delete[] words;
 }
 
-const char *Command::operator[](size_t index) const
+const char *Stanza::operator[](size_t index) const
 {
   if (index>n_words)
-    throw OutOfBoundsException("Command");
+    throw OutOfBoundsException("Stanza");
   return words[index];
 }
 
-void Command::doParse(const char *src)
+bool Stanza::match(const char *str) const
+{
+  return size() > 0 && strcmp(words[0], str) == 0;
+}
+
+void Stanza::doParse(const char *src)
 {
   enum LexerState
   {
@@ -121,28 +126,29 @@ void Command::doParse(const char *src)
   }
 }
 
-void Command::fixType()
+void Stanza::fixType()
 {
-  cmd_type = Regular;
+  stanza_type = Regular;
   if (n_words>0 && strlen(words[0])==1)
   {
     switch (words[0][0])
     {
       case '>':
-        cmd_type = TextMessage;
+        stanza_type = TextMessage;
         break;
       case '$':
-        cmd_type = StateChange;
+        stanza_type = StateChange;
         break;
       case '+':
-        cmd_type = GameData;
+        stanza_type = GameData;
         break;
       default:
         break;
     }
   }
 
-  if (cmd_type != Regular)
+  // Remove first (indicator) word
+  if (stanza_type != Regular)
   {
     for (size_t i=0; i<n_words-1; i++)
       words[i] = words[i+1];
@@ -151,7 +157,7 @@ void Command::fixType()
 }
 
 
-OutCommand::OutCommand(const char *str1, const char *str2, 
+MakeStanza::MakeStanza(const char *str1, const char *str2, 
     const char *str3, const char *str4, const char *str5)
 {
   assert(str1 != NULL);
@@ -167,13 +173,11 @@ OutCommand::OutCommand(const char *str1, const char *str2,
 
   for (size_t i=0; i<5; i++)
     if (strs[i] != NULL)
-    {
       out << '"' << strs[i] << '"' << ' ';
-    }
-  out << '\n';
+  out << '\n' << '\0';
 }
 
-OutCommand::~OutCommand()
+MakeStanza::~MakeStanza()
 {
   delete[] str;
 }

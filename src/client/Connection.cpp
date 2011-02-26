@@ -1,59 +1,97 @@
+extern "C" 
+{
+# include <unistd.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <sys/select.h>
+# include <netinet/ip.h>
+# include <arpa/inet.h>
+}
+#include <cerrno>
 #include <cstdio>
-#include <cassert>
 #include <cstring>
 
-#include "Command.h"
 #include "Connection.h"
+#include "Exceptions.h"
+
 
 Connection::Connection(const char *host, short port)
-  : SocketEventLoop(host, port)
+  : sock_fd(-1)
 {
+  connect(host, port);
 }
 
 Connection::~Connection()
 {
+  ::close(sock_fd);
 }
 
-void Connection::onLineReceived(const char *line)
+Connection &Connection::operator<<(const MakeStanza &stanza)
 {
-  Command cmd(line);
-  switch (cmd.type())
+  const char *text = stanza.c_str();
+  printf("[Socket] << %s", text);
+
+  size_t length = strlen(text);
+  size_t total_sent = 0;
+  while (total_sent < length)
   {
-    case Command::Regular:
-      break;
-    case Command::StateChange:
-      onStateChange(cmd);
-      break;
-    case Command::GameData:
-      onGameData(cmd);
-      break;
-    case Command::TextMessage:
-      onTextMessage(cmd);
-      break;
+    ssize_t nsent = ::write(sock_fd, text+total_sent, length-total_sent);
+    if (nsent > 0)
+      total_sent += nsent;
+    else if (-1 == nsent)
+      throw SocketException("write");
+    else
+      throw SocketException("write:eof");
+  }
+  return *this;
+}
+
+Connection &Connection::operator>>(Stanza *&stanza)
+{
+  if (in_queue.isEmpty())
+    readMoreData();
+  in_queue >> stanza;
+  return *this;
+}
+
+void Connection::readMoreData()
+{
+  static const size_t BUF_SIZE = 512;
+  char buf[BUF_SIZE];
+  while (in_queue.isEmpty())
+  {
+    ssize_t nread = ::read(sock_fd, buf, BUF_SIZE);
+    if (nread>0)
+    {
+      for (size_t i=0; i<nread; i++)
+        if (buf[i] == '\n')
+        {
+          printf("[Socket] >> %s\n", in_buffer.c_str());
+          in_queue << new Stanza(in_buffer.c_str());
+          in_buffer.clear();
+        }
+        else
+          in_buffer << buf[i];
+    }
+    else if (nread<0)
+      throw SocketException("read");
+    else
+      throw SocketException("read:eof");
   }
 }
 
-void Connection::onTextMessage(const Command &cmd)
+void Connection::connect(const char *host, short port)
 {
-  assert(cmd.size() == 2);
-  printf("Message[%s] >> %s\n", cmd[0], cmd[1]);
-}
+  sock_fd = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (-1 == sock_fd)
+    throw SocketException("socket");
 
-void Connection::onStateChange(const Command &cmd)
-{
-  assert(cmd.size() == 1);
-  printf("State >> %s\n", cmd[0]);
+  struct sockaddr_in sa;
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(port);
+  if (0 == ::inet_aton(host, &sa.sin_addr))
+    throw SocketException("inet_aton");
 
-  if (0 == strcmp(cmd[0], "auth"))
-    send(OutCommand("auth", "player", "Bot").c_str());
-  else if (0 == strcmp(cmd[0], "lobby"))
-    send(OutCommand("ready").c_str());
-}
-
-void Connection::onGameData(const Command &cmd)
-{
-  printf("GameData >> ");
-  for (size_t i=0; i<cmd.size(); i++)
-    printf("[%s] ", cmd[i]);
-  printf("\n");
+  if (-1 == ::connect(sock_fd, (struct sockaddr *)&sa, sizeof(sa)))
+    throw SocketException("connect");
 }

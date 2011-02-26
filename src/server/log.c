@@ -87,10 +87,10 @@ static void print_log(const char *prefix, const char *format, va_list args)
 extern FSM *server_fsm;
 static void network_log(const char *format, va_list args)
 {
-  ServerData *d;
+  return;
   if (server_fsm != NULL)
   {
-    d = (ServerData *) server_fsm->data;
+    ServerData *d = (ServerData *) server_fsm->data;
     server_send_log_message_v(d, format, args);
   }
 }

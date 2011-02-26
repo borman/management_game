@@ -104,7 +104,7 @@ static int listen_tcp(SocketLoop *loop)
     warning("Could not create a listening tcp socket: %s", strerror(errno));
     return 0;
   }
-  memset(&addr, sizeof(addr), 0);
+  memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(TCP_IN_PORT);
   addr.sin_addr.s_addr = INADDR_ANY;
@@ -130,7 +130,7 @@ static int listen_unix(SocketLoop *loop)
     warning("Could not create a listening unix socket: %s", strerror(errno));
     return 0;
   }
-  memset(&addr, sizeof(addr), 0);
+  memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
   strcpy(addr.sun_path, "/tmp/management-game");
   if (bind(sock, (struct sockaddr *)&addr, sizeof(addr))<0)

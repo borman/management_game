@@ -47,11 +47,15 @@ DEBUG_FUNC(warning, "[Warning]", TERM_FG_RED)
 
 void message(const char *format, ...) 
 { 
-  va_list args; 
-  va_start(args, format); 
+  va_list args, args2; 
+  va_start(args, format);
+  __va_copy(args2, args); 
+
   print_log(TERM_FG_WHITE "[Message]", format, args); 
-  network_log(format, args);
+  network_log(format, args2);
+
   va_end(args); 
+  va_end(args2); 
 }  
 
 void fatal(const char *format, ...)

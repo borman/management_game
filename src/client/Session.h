@@ -2,7 +2,7 @@
 #define SESSION_H
 
 #include "Stanza.h"
-#include "StanzaQueue.h"
+#include "Queue.h"
 #include "Connection.h"
 #include "GameInfo.h"
 
@@ -36,7 +36,7 @@ class Session
     void executeCommand(const MakeStanza &cmd);
 
     Connection connection;
-    StanzaQueue event_queue;
+    Queue<Stanza> event_queue;
     GameInfo game_info;
 };
 

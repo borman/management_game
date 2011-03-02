@@ -16,6 +16,11 @@ struct OutOfBoundsException: Exception
   OutOfBoundsException(const char *text): Exception(text) {}
 };
 
+struct StringFormatException: Exception
+{
+  StringFormatException(const char *text): Exception(text) {}
+};
+
 struct ParserException: Exception
 {
   ParserException(const char *text): Exception(text) {}

@@ -4,6 +4,7 @@
 #include "Stanza.h"
 #include "StanzaQueue.h"
 #include "Connection.h"
+#include "GameInfo.h"
 
 class Session
 {
@@ -21,6 +22,8 @@ class Session
     void requestProduce(unsigned int count);
     void requestBuild(unsigned int count);
 
+    const GameInfo *gameInfo() const { return &game_info; }
+
   protected:
     virtual void onStateAuth() {}
     virtual void onStateLobby() {}
@@ -34,6 +37,7 @@ class Session
 
     Connection connection;
     StanzaQueue event_queue;
+    GameInfo game_info;
 };
 
 #endif // SESSION_H

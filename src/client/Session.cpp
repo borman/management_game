@@ -88,13 +88,8 @@ void Session::onStanza(const Stanza &st)
       break;
 
     case Stanza::GameData:
+      game_info.consume(st);
       if (st.match("round"))
-      {
-      }
-      else if (st.match("market"))
-      {
-      }
-      else if (st.match("finance"))
       {
       }
       break;

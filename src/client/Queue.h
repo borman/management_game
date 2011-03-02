@@ -52,7 +52,6 @@ class Queue: public AbstractQueue
 
     AbstractQueue &operator <<(T *v) { push(v); return *this; }
     AbstractQueue &operator >>(T *&v) { v = pop(); return *this; }
-
 };
 
 #endif // ABSTRACTQUEUE_H

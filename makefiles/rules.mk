@@ -26,23 +26,23 @@ clean:
 	$(A)rm -rf build 
 
 $(OBJDIR)/%.o: %.c
-	@echo -e "\tCC\t$<"
+	@echo -e "\tCC\t$(<F)"
 	$(A)$(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o: %.cpp
-	@echo -e "\tCXX\t$<"
+	@echo -e "\tCXX\t$(<F)"
 	$(A)$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(DEPDIR)/%.d: %.c
-	@echo -e "\tDEP\t$<"
+	@echo -e "\tDEP\t$(<F)"
 	$(A)$(CC) $(CFLAGS) -o $@ -MT "$(OBJDIR)/$*.o" -MM $< 
 
 $(DEPDIR)/%.d: %.cpp
-	@echo -e "\tDEP\t$<"
+	@echo -e "\tDEP\t$(<F)"
 	$(A)$(CXX) $(CXXFLAGS) -o $@ -MT "$(OBJDIR)/$*.o" -MM $< 
 
 $(TARGET): $(OBJECTS)
-	@echo -e "\tLD\t$^"
+	@echo -e "\tLD\t$(^F)"
 	$(A)$(LINK) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 $(OBJECTS): Makefile | $(OBJDIR)

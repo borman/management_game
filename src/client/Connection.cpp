@@ -63,7 +63,7 @@ void Connection::readMoreData()
     ssize_t nread = ::read(sock_fd, buf, BUF_SIZE);
     if (nread>0)
     {
-      for (size_t i=0; i<nread; i++)
+      for (size_t i=0; i<static_cast<size_t>(nread); i++)
         if (buf[i] == '\n')
         {
           printf("[Socket] >> %s\n", in_buffer.c_str());

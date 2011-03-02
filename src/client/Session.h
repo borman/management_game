@@ -2,8 +2,9 @@
 #define SESSION_H
 
 #include "Stanza.h"
-#include "StanzaQueue.h"
+#include "Queue.h"
 #include "Connection.h"
+#include "GameInfo.h"
 
 class Session
 {
@@ -16,6 +17,12 @@ class Session
     // Protocol
     void authPlayer(const char *name);
     void setReady(bool is_ready = true);
+    void requestBuy(unsigned int count, unsigned int price);
+    void requestSell(unsigned int count, unsigned int price);
+    void requestProduce(unsigned int count);
+    void requestBuild(unsigned int count);
+
+    const GameInfo *gameInfo() const { return &game_info; }
 
   protected:
     virtual void onStateAuth() {}
@@ -29,7 +36,8 @@ class Session
     void executeCommand(const MakeStanza &cmd);
 
     Connection connection;
-    StanzaQueue event_queue;
+    Queue<Stanza> event_queue;
+    GameInfo game_info;
 };
 
 #endif // SESSION_H

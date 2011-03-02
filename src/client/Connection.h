@@ -3,7 +3,7 @@
 
 #include "TextBuffer.h"
 #include "Stanza.h"
-#include "StanzaQueue.h"
+#include "Queue.h"
 
 class Connection
 {
@@ -20,7 +20,7 @@ class Connection
 
     int sock_fd;
     TextBuffer in_buffer;
-    StanzaQueue in_queue;
+    Queue<Stanza> in_queue;
 };
 
 #endif // CONNECTION_H

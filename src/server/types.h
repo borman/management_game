@@ -39,6 +39,8 @@ enum ClientState
   CL_IN_GAME             = 0x10,
   CL_IN_GAME_WAIT        = 0x20,
   CL_DEAD                = 0x40,
+  /* All clients interested in game events */
+  CL_PLAYER              = CL_IN_GAME | CL_IN_GAME_WAIT | CL_SUPERVISOR,
   /* A shorthand for the set of all "authenticated" states */
   CL_AUTHENTICATED       = CL_SUPERVISOR 
     | CL_IN_LOBBY | CL_IN_LOBBY_ACK 

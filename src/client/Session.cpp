@@ -35,6 +35,37 @@ void Session::setReady(bool is_ready)
   executeCommand(MakeStanza(is_ready? "ready" : "notready"));
 }
 
+void Session::requestBuy(unsigned int count, unsigned int price)
+{
+  char s_count[20], s_price[20];
+  sprintf(s_count, "%d", count);
+  sprintf(s_price, "%d", price);
+  executeCommand(MakeStanza("buy", s_count, s_price));
+}
+
+void Session::requestSell(unsigned int count, unsigned int price)
+{
+  char s_count[20], s_price[20];
+  sprintf(s_count, "%d", count);
+  sprintf(s_price, "%d", price);
+  executeCommand(MakeStanza("sell", s_count, s_price));
+}
+
+void Session::requestProduce(unsigned int count)
+{
+  char s_count[20];
+  sprintf(s_count, "%d", count);
+  executeCommand(MakeStanza("produce", s_count));
+}
+
+void Session::requestBuild(unsigned int count)
+{
+  char s_count[20];
+  sprintf(s_count, "%d", count);
+  executeCommand(MakeStanza("build", s_count));
+}
+
+
 void Session::onStanza(const Stanza &st)
 {
   switch (st.type())
@@ -57,6 +88,15 @@ void Session::onStanza(const Stanza &st)
       break;
 
     case Stanza::GameData:
+      if (st.match("round"))
+      {
+      }
+      else if (st.match("market"))
+      {
+      }
+      else if (st.match("finance"))
+      {
+      }
       break;
 
     default:

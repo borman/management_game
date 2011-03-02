@@ -16,6 +16,10 @@ class Session
     // Protocol
     void authPlayer(const char *name);
     void setReady(bool is_ready = true);
+    void requestBuy(unsigned int count, unsigned int price);
+    void requestSell(unsigned int count, unsigned int price);
+    void requestProduce(unsigned int count);
+    void requestBuild(unsigned int count);
 
   protected:
     virtual void onStateAuth() {}

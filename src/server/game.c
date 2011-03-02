@@ -90,12 +90,14 @@ void game_start(ServerData *d)
     if (client_in_game(client))
       memcpy(&client->gcs, &player_init_state, sizeof(GameClientState));
   } FOREACH_END;
+  server_send_broadcast(d, CL_AUTHENTICATED,
+      "game start");
 }
 
 
 void game_finish_round(ServerData *d)
 {
-  server_send_broadcast(d, CL_IN_GAME_WAIT,
+  server_send_broadcast(d, CL_PLAYER,
       "round end %u", 
       d->round_counter);
   update_market_state(d);
@@ -106,13 +108,13 @@ void game_finish_round(ServerData *d)
 
 void game_start_round(ServerData *d)
 {
-  server_send_broadcast(d, CL_IN_GAME,
-      "round start %u", 
-      d->round_counter);
-  server_send_broadcast(d, CL_IN_GAME,
+  server_send_broadcast(d, CL_PLAYER,
       "market %u %u %u %u",
       d->market_state.raw.count, d->market_state.raw.price,
       d->market_state.product.count, d->market_state.product.price);
+  server_send_broadcast(d, CL_PLAYER,
+      "round start %u", 
+      d->round_counter);
   /* Init request data */
   FOREACH(ClientData *, client, d->clients)
   {
@@ -144,6 +146,8 @@ void game_check_players(ServerData *d)
   if (d->n_players == 0)
   {
     message("The game is over and nobody is left alive.");
+    server_send_broadcast(d, CL_AUTHENTICATED,
+        "game end");
     fsm_switch_state(d->fsm, ST_LOBBY);
   }
   else if (d->n_players == 1)
@@ -157,6 +161,8 @@ void game_check_players(ServerData *d)
     assert(winner != NULL);
     message("The game is over. And the winner is... %s!", winner->name);
     game_remove_player(d, winner);
+    server_send_broadcast(d, CL_AUTHENTICATED,
+        "game end");
     fsm_switch_state(d->fsm, ST_LOBBY);
   }
 }
@@ -349,6 +355,9 @@ static void do_kill_bankrupts(ServerData *d)
   {
     if (client_in_game(client) && client->gcs.money<0)
     {
+      server_send_broadcast(d, CL_PLAYER,
+          "bankrupt \"%s\"", 
+          client->name);
       message("%s is a bankrupt. He has to leave the game.", client->name);
       game_remove_player(d, client);
     }
@@ -382,7 +391,7 @@ static void finance(ServerData *d, ClientData *client, enum DealType type,
   if (delta == 0)
     return;
   
-  server_send_broadcast(d, CL_IN_GAME_WAIT, 
+  server_send_broadcast(d, CL_PLAYER, 
       "finance \"%s\" %s %s %u %u %+d",
       client->name,
       purpose_major, purpose_minor,

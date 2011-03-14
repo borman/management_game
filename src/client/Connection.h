@@ -1,26 +1,26 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include "TextBuffer.h"
+#include <string>
+#include <queue>
 #include "Stanza.h"
-#include "Queue.h"
 
 class Connection
 {
   public:
-    Connection(const char *host, short port);
+    Connection(const std::string &host, unsigned short port);
     ~Connection();
 
-    Connection &operator<<(const MakeStanza &stanza);
-    Connection &operator>>(Stanza *&stanza);
+    Connection &operator<<(const Stanza &stanza);
+    Connection &operator>>(Stanza &stanza);
 
   private:
-    void connect(const char *host, short port);
+    void connect(const std::string &host, unsigned short port);
     void readMoreData();
 
     int sock_fd;
-    TextBuffer in_buffer;
-    Queue<Stanza> in_queue;
+    std::string in_buffer;
+    std::queue<Stanza> in_queue;
 };
 
 #endif // CONNECTION_H

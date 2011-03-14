@@ -1,128 +1,96 @@
-#include <cstdio>
-
 #include "Session.h"
-#include "Exceptions.h"
 
-Session::Session(const char *host, short port)
-  : connection(host, port)
+static std::string uint2str(unsigned int u)
+{
+  char str[16];
+  sprintf(str, "%u", u);
+  return str;
+}
+
+Session::Session(const std::string &host, unsigned short port)
 {
 }
 
-void Session::run()
+void Session::login(NameGenerator *namegen)
 {
-  while (true)
+}
+
+void Session::playGame(Actor *actor)
+{
+}
+
+
+void Session::buy(unsigned int count, unsigned int price)
+{
+  execCommand(Stanza("buy", uint2str(count), uint2str(price)));
+}
+
+void Session::sell(unsigned int count, unsigned int price)
+{
+  execCommand(Stanza("sell", uint2str(count), uint2str(price)));
+}
+
+void Session::build(unsigned int count)
+{
+  execCommand(Stanza("build", uint2str(count)));
+}
+ 
+void Session::signalReady(bool ready = true)
+{
+  execCommand(Stanza(ready? "ready" : "notready"));
+}
+
+
+void Session::waitForState(const string &nextState)
+{
+  while (true) 
   {
-    Stanza *stanza;
-    while (!event_queue.isEmpty())
+    Stanza st;
+    if (!eventQueue.empty())
     {
-      event_queue >> stanza;
-      onStanza(*stanza);
-      delete stanza;
-    }
-    connection >> stanza;  
-    onStanza(*stanza);
-    delete stanza;
-  }
-}
-
-void Session::authPlayer(const char *name)
-{
-  executeCommand(MakeStanza("auth", "player", name));
-}
-
-void Session::setReady(bool is_ready)
-{
-  executeCommand(MakeStanza(is_ready? "ready" : "notready"));
-}
-
-void Session::requestBuy(unsigned int count, unsigned int price)
-{
-  char s_count[20], s_price[20];
-  sprintf(s_count, "%d", count);
-  sprintf(s_price, "%d", price);
-  executeCommand(MakeStanza("buy", s_count, s_price));
-}
-
-void Session::requestSell(unsigned int count, unsigned int price)
-{
-  char s_count[20], s_price[20];
-  sprintf(s_count, "%d", count);
-  sprintf(s_price, "%d", price);
-  executeCommand(MakeStanza("sell", s_count, s_price));
-}
-
-void Session::requestProduce(unsigned int count)
-{
-  char s_count[20];
-  sprintf(s_count, "%d", count);
-  executeCommand(MakeStanza("produce", s_count));
-}
-
-void Session::requestBuild(unsigned int count)
-{
-  char s_count[20];
-  sprintf(s_count, "%d", count);
-  executeCommand(MakeStanza("build", s_count));
-}
-
-
-void Session::onStanza(const Stanza &st)
-{
-  switch (st.type())
-  {
-    case Stanza::TextMessage:
-      printf("[Message %s] > %s\n", st[0], st[1]);
-      break;
-
-    case Stanza::StateChange:
-      if (st.match("auth")) 
-        onStateAuth();
-      else if (st.match("lobby")) 
-        onStateLobby();
-      else if (st.match("lobby_ready")) 
-        onStateLobbyReady();
-      else if (st.match("game")) 
-        onStateGame();
-      else if (st.match("game_active")) 
-        onStateGameActive();
-      break;
-
-    case Stanza::GameData:
-      game_info.consume(st);
-      if (st.match("round"))
-      {
-      }
-      break;
-
-    default:
-      break;
-  }
-}
-
-void Session::executeCommand(const MakeStanza &cmd)
-{
-  connection << cmd;
-  bool processing = true;
-  while (processing)
-  {
-    Stanza *stanza;
-    connection >> stanza;
-    if (stanza->type() != Stanza::Regular)
-      event_queue << stanza; // Postpone
-    else if (stanza->match("ack"))
-    {
-      processing = false;
-      delete stanza;
-    }
-    else if (stanza->match("fail"))
-    {
-      delete stanza;
-      throw Exception("Command fail");
+      st = eventQueue.front();
+      eventQueue.pop();
     }
     else
-    {
-      // Command data
-      delete stanza;
+      conn >> st;
+
+    if (st[0] == ">")
+      processTextMessage(st);
+    else if (st[0] == "+")
+      processGameData(st);
+    else
+    { 
+      // Only a state change stanza will get here
+      assert(st[0] == "$");
+      assert(st[1] == nextState);
+      break;
     }
   }
 }
+
+void processTextMessage(const Stanza &stanza)
+{
+  std::string nick = stanza[1];
+  std::string text = stanza[2];
+
+  printf("Message [%s] -> %s\n", nick.c_str(), text.c_str());
+}
+
+void processGameData(const Stanza &stanza)
+{
+  printf("GameData [%s]\n", stanza[1]); 
+}
+
+vector<Stanza> Session::execCommand(const Stanza &command)
+{
+  conn << command;
+  while (true)
+  {
+    Stanza st;
+    conn >> st;
+    if (st[0] == ">" || st[0] == "+" || st[0] == "$")
+      eventQueue.push(st);
+    
+  }
+}
+

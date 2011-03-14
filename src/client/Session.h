@@ -1,44 +1,40 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "Stanza.h"
-#include "Queue.h"
+#include <string>
+#include <vector>
+#include <queue>
+#include "Actor.h"
 #include "Connection.h"
 #include "GameInfo.h"
+#include "NameGenerator.h"
+#include "Stanza.h"
 
-class Session
+class Session 
 {
   public:
-    Session(const char *host, short port);
+    Session(const std::string &host, unsigned short port);
 
-    // Main loop
-    void run();
+    void login(NameGenerator *namegen);
+    void playGame(Actor *actor);
 
-    // Protocol
-    void authPlayer(const char *name);
-    void setReady(bool is_ready = true);
-    void requestBuy(unsigned int count, unsigned int price);
-    void requestSell(unsigned int count, unsigned int price);
-    void requestProduce(unsigned int count);
-    void requestBuild(unsigned int count);
+    const GameInfo &gameInfo() const { return gameInfo; }
 
-    const GameInfo *gameInfo() const { return &game_info; }
-
-  protected:
-    virtual void onStateAuth() {}
-    virtual void onStateLobby() {}
-    virtual void onStateLobbyReady() {}
-    virtual void onStateGame() {}
-    virtual void onStateGameActive() {}
+    // Commands
+    void buy(unsigned int count, unsigned int price);
+    void sell(unsigned int count, unsigned int price);
+    void build(unsigned int count); 
+    void signalReady(bool ready = true);
 
   private:
-    void onStanza(const Stanza &st);
-    void executeCommand(const MakeStanza &cmd);
+    void waitForState(const string &nextState);
+    vector<Stanza> execCommand(const Stanza &command);
+    void processTextMessage(const Stanza &stanza);
+    void processGameData(const Stanza &stanza);
 
-    Connection connection;
-    Queue<Stanza> event_queue;
-    GameInfo game_info;
+    Connection conn;
+    GameInfo gameInfo;
+    queue<Stanza> eventQueue;
 };
 
 #endif // SESSION_H
-

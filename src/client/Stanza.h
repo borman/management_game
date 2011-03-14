@@ -2,6 +2,8 @@
 #define STANZA_H
 
 #include <cstddef>
+#include <string>
+#include <vector>
 
 /** Stanza class
  *
@@ -11,48 +13,23 @@
 class Stanza
 {
   public:
-    enum Type
-    {
-      Regular,
-      TextMessage,
-      GameData,
-      StateChange
-    };
+    Stanza(const std::string &str1,
+           const std::string &str2 = std::string(),
+           const std::string &str3 = std::string(),
+           const std::string &str4 = std::string(),
+           const std::string &str5 = std::string());
 
-    Stanza(const char *str);
-    ~Stanza();
+    size_t size() const { return words.size(); }
+    std::string operator[](size_t index) const { return words[i]; } 
 
-    size_t size() const { return n_words; }
-    Type type() const { return stanza_type; }
+    std::string toString() const;
 
-    const char *operator[](size_t index) const;
-    bool match(const char *str) const;
+    static Stanza parse(const std::string &str);
 
   private:
-    Stanza(const Stanza &) {} // Disabled copy
-    void doParse(const char *str);
-    void fixType();
+    Stanza() {}
 
-    char *data;
-    size_t n_words;
-    char **words;
-
-    Type stanza_type;
-};
-
-class MakeStanza
-{
-  public:
-    MakeStanza(const char *str1, 
-               const char *str2 = NULL, 
-               const char *str3 = NULL, 
-               const char *str4 = NULL, 
-               const char *str5 = NULL);
-    ~MakeStanza();
-
-    const char *c_str() const { return str; }
-  private:
-    char *str;
+    std::vector<std::string> words;
 };
 
 #endif // STANZA_H

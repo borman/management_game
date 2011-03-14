@@ -2,34 +2,40 @@
 #define EXCEPTIONS_H
 
 #include <cerrno>
+#include <string>
 
 struct Exception 
 {
-  Exception(const char *text)
+  Exception(const std::string &text)
     : text(text) {}
 
-  const char *text;
+  std::string text;
 };
 
 struct OutOfBoundsException: Exception
 {
-  OutOfBoundsException(const char *text): Exception(text) {}
+  OutOfBoundsException(const std::string &text): Exception(text) {}
 };
 
 struct StringFormatException: Exception
 {
-  StringFormatException(const char *text): Exception(text) {}
+  StringFormatException(const std::string &text): Exception(text) {}
 };
 
 struct ParserException: Exception
 {
-  ParserException(const char *text): Exception(text) {}
+  ParserException(const std::string &text): Exception(text) {}
 };
 
 struct SocketException: Exception
 {
-  SocketException(const char *text): Exception(text), err(errno) {}
+  SocketException(const std::string &text): Exception(text), err(errno) {}
   int err;
+};
+
+struct CommandException: Exception
+{
+  CommandException(const std::string &text): Exception(text) {}
 };
 
 #endif // EXCEPTIONS_H

@@ -251,6 +251,8 @@ static void lobby_on_exit(FSM *fsm)
   d->round_counter = 0;
   d->n_players = 0;
   d->continuous_game = 0;
+
+  /* Update client states */
   FOREACH(ClientData *, client, d->clients)
   {
     if (client->state == CL_IN_LOBBY_ACK)
@@ -259,6 +261,7 @@ static void lobby_on_exit(FSM *fsm)
       d->n_players++;
     }
   } FOREACH_END;
+
   game_start(d);
 }
 
@@ -283,13 +286,15 @@ static void round_on_enter(FSM *fsm)
 {
   ServerData *d = (ServerData *) fsm->data;
   message("Round %d begins.", d->round_counter);
+  game_start_round(d);
+
+  /* Update client states */
   FOREACH(ClientData *, client, d->clients)
   {
     if (client->state == CL_IN_GAME_WAIT)
       server_set_client_state(d, client, CL_IN_GAME);
   } FOREACH_END;
   d->n_waitfor = d->n_players;
-  game_start_round(d);
 }
 
 static void round_on_exit(FSM *fsm)

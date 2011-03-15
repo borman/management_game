@@ -62,7 +62,7 @@ static const struct MarketState market_states[N_MARKET_STATES] =
 
 /* Financial operations */
 static void do_finances(ServerData *d);
-static void do_costs(ServerData *d);
+static void do_expenses(ServerData *d);
 static void do_kill_bankrupts(ServerData *d);
 static void finance(ServerData *d, ClientData *client, enum DealType type,
    const char *purpose_major, const char *purpose_minor, 
@@ -90,7 +90,7 @@ void game_start(ServerData *d)
     if (client_in_game(client))
       memcpy(&client->gcs, &player_init_state, sizeof(GameClientState));
   } FOREACH_END;
-  server_send_broadcast(d, CL_AUTHENTICATED,
+  server_send_broadcast(d, CL_SUPERVISOR,
       "game start");
 }
 
@@ -146,7 +146,7 @@ void game_check_players(ServerData *d)
   if (d->n_players == 0)
   {
     message("The game is over and nobody is left alive.");
-    server_send_broadcast(d, CL_AUTHENTICATED,
+    server_send_broadcast(d, CL_SUPERVISOR,
         "game end");
     fsm_switch_state(d->fsm, ST_LOBBY);
   }
@@ -293,13 +293,13 @@ static void do_finances(ServerData *d)
     finance(d, client, INCOME, "auction", "product", to_buy, client->req.product_price);
   }
 
-  do_costs(d);
+  do_expenses(d);
   free(offers);
   /* kill bankrupts */
 }
 
 /* Charge for pending stuff */
-static void do_costs(ServerData *d)
+static void do_expenses(ServerData *d)
 {
   FOREACH(ClientData *, client, d->clients)
   {
@@ -307,16 +307,16 @@ static void do_costs(ServerData *d)
     {
       List *factories_incomplete;
 
-      /* Posession cost */
-      finance(d, client, EXPENDITURE, "cost", "factory", 
+      /* Posession expense */
+      finance(d, client, EXPENDITURE, "expense", "factory", 
           client->gcs.factories, 1000);
-      finance(d, client, EXPENDITURE, "cost", "raw", 
+      finance(d, client, EXPENDITURE, "expense", "raw", 
           client->gcs.raw, 300);
-      finance(d, client, EXPENDITURE, "cost", "product", 
+      finance(d, client, EXPENDITURE, "expense", "product", 
           client->gcs.product, 500);
 
       /* Production */
-      finance(d, client, EXPENDITURE, "cost", "production", 
+      finance(d, client, EXPENDITURE, "expense", "production", 
           client->req.items_to_produce, 2000);
       client->gcs.product += client->req.items_to_produce;
 
@@ -327,14 +327,14 @@ static void do_costs(ServerData *d)
         FactoryRequest *req = list_head(factories_incomplete, FactoryRequest *); 
         if (req->deadline == d->round_counter + 1)
         {
-          finance(d, client, EXPENDITURE, "cost", "construction_end", 
+          finance(d, client, EXPENDITURE, "expense", "construction_end", 
             req->count, 5000/2);
           client->gcs.factories += req->count;
           factories_incomplete = list_pop(factories_incomplete);
           free(req);
         }
       }
-      finance(d, client, EXPENDITURE, "cost", "construction_begin", 
+      finance(d, client, EXPENDITURE, "expense", "construction_begin", 
           client->req.factories_to_build, 5000/2);
       if (client->req.factories_to_build > 0)
       {

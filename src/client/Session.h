@@ -13,12 +13,12 @@
 class Session 
 {
   public:
-    Session(const std::string &host, unsigned short port);
+    Session(const Address &addr);
 
     void login(NameGenerator *namegen);
     void playGame(Actor *actor);
 
-    const GameInfo &gameInfo() const { return gameInfo; }
+    const GameInfo &gameInfo() const { return m_gameInfo; }
 
     // Commands
     void buy(unsigned int count, unsigned int price);
@@ -26,15 +26,15 @@ class Session
     void build(unsigned int count); 
     void signalReady(bool ready = true);
 
+    std::vector<Stanza> execCommand(const Stanza &command);
   private:
-    void waitForState(const string &nextState);
-    vector<Stanza> execCommand(const Stanza &command);
+    void waitForState(const std::string &nextState);
     void processTextMessage(const Stanza &stanza);
     void processGameData(const Stanza &stanza);
 
-    Connection conn;
-    GameInfo gameInfo;
-    queue<Stanza> eventQueue;
+    Connection m_conn;
+    GameInfo m_gameInfo;
+    std::queue<Stanza> m_eventQueue;
 };
 
 #endif // SESSION_H

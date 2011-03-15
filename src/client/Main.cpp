@@ -1,28 +1,45 @@
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
+#include <iostream>
 
 #include "Exceptions.h"
 #include "Session.h"
 #include "GenericNameGenerator.h"
+#include "HumanActor.h"
+
+using namespace std;
 
 int main()
 {
-  HumanActor *actor = new HumanActor();
-  GenericNameGenerator *namegen = new GenericNameGenerator();
+  cin.exceptions(ios_base::failbit | ios_base::eofbit);
+
   try
   {
-    Session session("127.0.0.1", 8982);
-    session.login(namegen);
-    while (true)
-      session.playGame(actor);
+    HumanActor actor;
+    GenericNameGenerator namegen;
+    //Session session(InetAddress("127.0.0.1", 8982));
+    Session session(UnixAddress("/tmp/management-game"));
+    session.login(&namegen);
+    session.playGame(&actor);
   }
-  catch (SocketException e)
+  catch (const SocketException &e)
   {
-    printf("Socket exception in %s: %s\n", e.text.c_str(), strerror(e.err));
+    cout << "Socket exception in " << e.text << ": " << strerror(e.err) << endl;
   }
-  catch (Exception e)
+  catch (const Exception &e)
   {
-    printf("Generic exception: %s\n", e.text.c_str());
+    cout << "Generic exception: " << e.text << endl;
+  }
+  catch (const ios_base::failure &e)
+  {
+    cout << "Input failed" << endl;
+    exit(1);
+  }
+  catch (...)
+  {
+    printf("Alien exception caught\n");
+    abort();
   }
 
   return 0;

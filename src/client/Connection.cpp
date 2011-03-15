@@ -4,6 +4,7 @@ extern "C"
 # include <sys/types.h>
 # include <sys/socket.h>
 # include <sys/select.h>
+# include <sys/un.h>
 # include <netinet/ip.h>
 # include <arpa/inet.h>
 }
@@ -15,10 +16,10 @@ extern "C"
 #include "Exceptions.h"
 
 
-Connection::Connection(const std::string &host, unsigned short port)
+Connection::Connection(const Address &addr)
   : sock_fd(-1)
 {
-  connect(host, port);
+  sock_fd = addr.connect();
 }
 
 Connection::~Connection()
@@ -31,7 +32,7 @@ Connection &Connection::operator<<(const Stanza &stanza)
   const std::string text = stanza.toString();
   printf("[Socket] << %s", text.c_str());
 
-  const char *data = stanza.c_str();
+  const char *data = text.c_str();
   const size_t length = text.length();
   size_t total_sent = 0;
   while (total_sent < length)
@@ -82,18 +83,46 @@ void Connection::readMoreData()
   }
 }
 
-void Connection::connect(const std::string &host, unsigned short port)
+int InetAddress::connect() const
 {
-  sock_fd = ::socket(AF_INET, SOCK_STREAM, 0);
+  int sock_fd = ::socket(AF_INET, SOCK_STREAM, 0);
   if (-1 == sock_fd)
     throw SocketException("socket");
 
   struct sockaddr_in sa;
   sa.sin_family = AF_INET;
-  sa.sin_port = htons(port);
-  if (0 == ::inet_aton(host.c_str(), &sa.sin_addr))
+  sa.sin_port = htons(m_port);
+  if (0 == ::inet_aton(m_host.c_str(), &sa.sin_addr))
+  {
+    close(sock_fd);
     throw SocketException("inet_aton");
+  }
 
   if (-1 == ::connect(sock_fd, (struct sockaddr *)&sa, sizeof(sa)))
+  {
+    close(sock_fd);
     throw SocketException("connect");
+  }
+
+  return sock_fd;
+}
+
+int UnixAddress::connect() const
+{
+  int sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  if (-1 == sock_fd)
+    throw SocketException("socket");
+
+  struct sockaddr_un sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sun_family = AF_UNIX;
+  strcpy(sa.sun_path, m_path.c_str());
+
+  if (-1 == ::connect(sock_fd, (struct sockaddr *)&sa, sizeof(sa)))
+  {
+    close(sock_fd);
+    throw SocketException("connect");
+  }
+
+  return sock_fd;
 }

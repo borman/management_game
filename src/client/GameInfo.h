@@ -1,6 +1,11 @@
 #ifndef GAMEINFO_H
 #define GAMEINFO_H
 
+#include <vector>
+#include <string>
+#include <map>
+#include "Stanza.h"
+
 class Player
 {
   public:
@@ -30,13 +35,20 @@ class Transaction
   public:
     enum Type
     {
-      Raw,
-      Product
+      Invalid,
+      AuctionRaw,
+      AuctionProduct,
+      ExpenseFactory,
+      ExpenseProduct,
+      ExpenseRaw,
+      ExpenseProduction,
+      ExpenseConstructionBegin,
+      ExpenseConstructionEnd
     };
 
-    Transaction(Type t, unsigned int id, 
+    Transaction(Type t, unsigned int player_id, 
                 unsigned int count, unsigned int price)
-      : m_type(t), m_id(id), m_count(count), m_price(price) {}
+      : m_type(t), m_playerId(player_id), m_count(count), m_price(price) {}
 
     Type type() const { return m_type; }
     size_t playerId() const { return m_playerId; }
@@ -53,34 +65,49 @@ class Transaction
 class MarketState
 {
   public:
+    MarketState()
+      : m_rawCount(0), m_rawPrice(0), 
+        m_productCount(0), m_productPrice(0) {}
+
     unsigned int rawCount() const { return m_rawCount; }
     unsigned int rawPrice() const { return m_rawPrice; }
     unsigned int productCount() const { return m_productCount; }
     unsigned int productPrice() const { return m_productPrice; }
     
+    void prettyPrint() const;
   private:
     unsigned int m_rawCount;
     unsigned int m_rawPrice;
     unsigned int m_productCount;
     unsigned int m_productPrice;
+
+    friend class GameInfo;
 };
 
 class GameInfo 
 {
   public:
-    size_t playerCount() const { return players.size(); }
+    size_t playerCount() const { return m_players.size(); }
     
-    const Player &player(size_t id) const { return players[id]; }
-    const Player &player(const std::string &name) const { return players[playerIdByName[name]]; }
+    const Player &player(size_t id) const 
+      { return m_players[id]; }
+    const Player &player(const std::string &name) const 
+      { return m_players[m_playerIdByName.at(name)]; }
 
-    const vector<Transaction> &transactions() const { return lastTransactions; }
-    const MarketState &market() { return marketState; }
+    const std::vector<Transaction> &transactions() const
+      { return m_transactions; }
+    const MarketState &market() const 
+      { return m_marketState; }
+
+    void consume(const Stanza &st);
+    void clearTransactions() { m_transactions.clear(); }
+    void updatePlayerList(const std::vector<Stanza> &stanzas);
   private:
-    vector<Player> players;
-    std::map<std::string, size_t> playerIdByName;
+    std::vector<Player> m_players;
+    std::map<std::string, size_t> m_playerIdByName;
 
-    vector<Transaction> lastTransactions;
-    MarketState marketState;
+    std::vector<Transaction> m_transactions;
+    MarketState m_marketState;
 };
 
 #endif // GAMEINFO_H

@@ -3,11 +3,11 @@
 
 #include "Actor.h"
 
-class HumanActor
+class HumanActor: public Actor
 {
   public:
-    virtual void onGameStart(Session &session);
-    virtual void onTurn(Session &session);
+    virtual void onGameStart(Session *session);
+    virtual void onTurn(Session *session);
 };
 
 #endif // HUMANACTOR_H

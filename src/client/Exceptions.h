@@ -38,5 +38,10 @@ struct CommandException: Exception
   CommandException(const std::string &text): Exception(text) {}
 };
 
+struct UnexpectedStateException: Exception
+{
+  UnexpectedStateException(const std::string &text): Exception(text) {}
+};
+
 #endif // EXCEPTIONS_H
 

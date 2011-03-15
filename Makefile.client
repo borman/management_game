@@ -7,6 +7,8 @@ INCLUDEPATH = src
 vpath %.cpp $(SOURCE_DIRS)
 vpath %.h $(SOURCE_DIRS)
 
+USE_GCC := 1
+
 # Default config
 include makefiles/config.mk
 

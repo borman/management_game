@@ -41,6 +41,7 @@
 static int listen_tcp(SocketLoop *loop);
 static int listen_unix(SocketLoop *loop);
 static void terminate_handler(int);
+static void sigpipe_handler(int);
 
 static void on_client_connect(SocketLoop *loop, int fd);
 static void on_incoming_message(SocketLoop *loop, int fd, const char *msg);
@@ -64,9 +65,13 @@ int main()
   message("Server started");
   main_loop = socketloop_new(&event_handler);
 
+  /* Terminate gracefully */
   signal(SIGINT, terminate_handler);
   signal(SIGHUP, terminate_handler);
   signal(SIGTERM, terminate_handler);
+
+  /* Do not die when a client disconnects unexpectedly */
+  signal(SIGPIPE, sigpipe_handler); 
   
   server_fsm = server_fsm_new(main_loop);
   socketloop_set_data(main_loop, server_fsm);
@@ -83,6 +88,7 @@ int main()
   signal(SIGINT, SIG_DFL);
   signal(SIGHUP, SIG_DFL);
   signal(SIGTERM, SIG_DFL);
+  signal(SIGPIPE, SIG_DFL); 
   
   socketloop_delete(main_loop);
   server_fsm_delete(server_fsm);
@@ -152,6 +158,11 @@ static void terminate_handler(int sig)
   signal(sig, terminate_handler);
 }
 
+static void sigpipe_handler(int sig)
+{
+  warning("SIGPIPE has arrived");
+  signal(sig, sigpipe_handler);
+}
 
 /* Socket event handlers */
 

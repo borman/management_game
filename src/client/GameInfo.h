@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <iostream>
 #include "Stanza.h"
 
 class Player
@@ -109,5 +110,7 @@ class GameInfo
     std::vector<Transaction> m_transactions;
     MarketState m_marketState;
 };
+
+std::ostream &operator<<(std::ostream &os, const MarketState &market);
 
 #endif // GAMEINFO_H

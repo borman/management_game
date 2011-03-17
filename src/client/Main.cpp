@@ -7,6 +7,8 @@
 #include "Session.h"
 #include "GenericNameGenerator.h"
 #include "HumanActor.h"
+#include "BotActor.h"
+#include "Term.h"
 
 using namespace std;
 
@@ -16,7 +18,7 @@ int main()
 
   try
   {
-    HumanActor actor;
+    BotActor actor;
     GenericNameGenerator namegen;
     //Session session(InetAddress("127.0.0.1", 8982));
     Session session(UnixAddress("/tmp/management-game"));
@@ -25,11 +27,11 @@ int main()
   }
   catch (const SocketException &e)
   {
-    cout << "Socket exception in " << e.text << ": " << strerror(e.err) << endl;
+    cout << "Socket exception in " << e.text << ": " << Term::Red(strerror(e.err)) << endl;
   }
   catch (const Exception &e)
   {
-    cout << "Generic exception: " << e.text << endl;
+    cout << "Generic exception: " << Term::Red(e.text) << endl;
   }
   catch (const ios_base::failure &e)
   {

@@ -3,6 +3,7 @@
 #include <iostream>
 #include "Session.h"
 #include "Exceptions.h"
+#include "Term.h"
 
 using namespace std;
 
@@ -43,20 +44,23 @@ void Session::playGame(Actor *actor)
   waitForState("lobby_ready");
   waitForState("game");
   actor->onGameStart(this);
-  while (true)
+  bool in_game = true;
+  while (in_game)
   {
     try
     {
       waitForState("game_active");
       m_gameInfo.updatePlayerList(execCommand(Stanza("lsgame")));
       actor->onTurn(this);
+      signalReady();
       m_gameInfo.clearTransactions();
       waitForState("game");
     }
     catch (const UnexpectedStateException &e)
     {
       assert(e.text == "lobby");
-      cout << "The game is over.";
+      cout << "The game is over." << endl;
+      in_game = false;
     }
   }
 }
@@ -70,6 +74,11 @@ void Session::buy(unsigned int count, unsigned int price)
 void Session::sell(unsigned int count, unsigned int price)
 {
   execCommand(Stanza("sell", uint2str(count), uint2str(price)));
+}
+
+void Session::produce(unsigned int count)
+{
+  execCommand(Stanza("produce", uint2str(count)));
 }
 
 void Session::build(unsigned int count)
@@ -116,7 +125,9 @@ void Session::processTextMessage(const Stanza &stanza)
   string nick = stanza[1];
   string text = stanza[2];
 
-  printf("Message [%s] -> %s\n", nick.c_str(), text.c_str());
+  cout << Term::SetBold 
+       << "Message [" << nick << "] -> " << Term::SetRegular
+       << text << endl;
 }
 
 void Session::processGameData(const Stanza &stanza)

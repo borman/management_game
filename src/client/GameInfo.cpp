@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include "GameInfo.h"
+#include "Term.h"
 
 using namespace std;
 
@@ -46,7 +47,6 @@ void GameInfo::consume(const Stanza &st)
 {
   if (st[1] == "market")
   {
-    cout << "[GameInfo] << " << "market" << endl;
     m_marketState.m_rawCount = str2uint(st[2]);
     m_marketState.m_rawPrice = str2uint(st[3]);
     m_marketState.m_productCount = str2uint(st[4]);
@@ -64,17 +64,24 @@ void GameInfo::consume(const Stanza &st)
 
 void GameInfo::updatePlayerList(const vector<Stanza> &stanzas)
 {
-  // TODO
+
 }
 
-void MarketState::prettyPrint() const
+ostream &operator<<(ostream &os, const MarketState &market)
 {
-  cout << "|=----------   Market state   ---------=|" << endl;
-  cout << "|---     Raw     ---|---   Product   ---|" << endl;
-  cout << "|    Count    Price |    Count    Price |" << endl;
-  cout << "|" << setw(9) << rawCount() 
-              << setw(9) << rawPrice()        << " |"
-              << setw(9) << productCount() 
-              << setw(9) << productPrice()    << " |" << endl;
-  cout << "|=-------------------------------------=|" << endl;
+  os << "|=----------   Market state   ---------=|" << endl;
+  os << "|---     Raw     ---|---   Product   ---|" << endl;
+  os << "|    Count    Price |    Count    Price |" << endl;
+  os << "|" << Term::SetBold << Term::SetGreen
+            << setw(9) << market.rawCount() 
+            << setw(9) << market.rawPrice() 
+            << Term::ResetColor << Term::SetRegular 
+            << " |"
+            << Term::SetBold << Term::SetGreen
+            << setw(9) << market.productCount()
+            << setw(9) << market.productPrice()
+            << Term::ResetColor << Term::SetRegular 
+            << " |" << endl;
+  os << "|=-------------------------------------=|" << endl;
+  return os;
 }

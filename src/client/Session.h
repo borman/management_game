@@ -23,6 +23,7 @@ class Session
     // Commands
     void buy(unsigned int count, unsigned int price);
     void sell(unsigned int count, unsigned int price);
+    void produce(unsigned int count);
     void build(unsigned int count); 
     void signalReady(bool ready = true);
 

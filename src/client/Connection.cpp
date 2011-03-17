@@ -9,12 +9,16 @@ extern "C"
 # include <arpa/inet.h>
 }
 #include <cerrno>
-#include <cstdio>
 #include <cstring>
+#include <iostream>
 
 #include "Connection.h"
 #include "Exceptions.h"
+#include "Term.h"
 
+// #define LOG_TRAFFIC
+
+using namespace std;
 
 Connection::Connection(const Address &addr)
   : sock_fd(-1)
@@ -30,7 +34,10 @@ Connection::~Connection()
 Connection &Connection::operator<<(const Stanza &stanza)
 {
   const std::string text = stanza.toString();
-  printf("[Socket] << %s", text.c_str());
+#ifdef LOG_TRAFFIC
+  cout << Term::SetBold << Term::Green("[Socket] << ") 
+       << Term::SetRegular << text << endl;
+#endif
 
   const char *data = text.c_str();
   const size_t length = text.length();
@@ -69,7 +76,10 @@ void Connection::readMoreData()
       for (size_t i=0; i < static_cast<size_t>(nread); i++)
         if (buf[i] == '\n')
         {
-          printf("[Socket] >> %s\n", in_buffer.c_str());
+#ifdef LOG_TRAFFIC
+          cout << Term::SetBold << Term::Cyan("[Socket] >> ") 
+               << Term::SetRegular << in_buffer << endl;
+#endif
           in_queue.push(Stanza::parse(in_buffer));
           in_buffer.clear();
         }

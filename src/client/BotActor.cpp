@@ -27,8 +27,10 @@ void BotActor::onTurn(Session *session)
        << setw(5) << left << roundCounter << right 
        << Term::Brown(" ---------=>") << Term::SetRegular << endl << endl;
 
+  session->gameInfo().printPlayers(cout);
+  session->gameInfo().printMarket(cout);
+
   const MarketState &market = session->gameInfo().market();
-  cout << market;
 
   unsigned int rawToBuy = min(market.rawCount(), 2U); 
   unsigned int rawPrice = market.rawPrice();

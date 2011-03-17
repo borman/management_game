@@ -45,6 +45,7 @@ void Session::playGame(Actor *actor)
   waitForState("game");
   actor->onGameStart(this);
   bool in_game = true;
+  m_gameInfo = GameInfo(); // Reset game info
   while (in_game)
   {
     try
@@ -122,12 +123,14 @@ void Session::waitForState(const string &nextState)
 
 void Session::processTextMessage(const Stanza &stanza)
 {
+#if 0
   string nick = stanza[1];
   string text = stanza[2];
 
   cout << Term::SetBold 
        << "Message [" << nick << "] -> " << Term::SetRegular
        << text << endl;
+#endif
 }
 
 void Session::processGameData(const Stanza &stanza)

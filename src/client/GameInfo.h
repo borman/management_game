@@ -12,10 +12,12 @@ class Player
   public:
     Player()
       : m_id(0), m_name(), m_balance(0), 
-        m_raw(0), m_product(0), m_factories(0) {}
+        m_raw(0), m_product(0), m_factories(0), m_alive(true) {}
 
     size_t id() { return m_id; }
     std::string name() const { return m_name; }
+
+    bool alive() const { return m_alive; }
 
     int balance() const { return m_balance; }
     unsigned int rawCount() const { return m_raw; }
@@ -29,6 +31,9 @@ class Player
     unsigned int m_raw;
     unsigned int m_product;
     unsigned int m_factories;
+    bool m_alive;
+
+    friend class GameInfo;
 };
 
 class Transaction
@@ -100,6 +105,9 @@ class GameInfo
     const MarketState &market() const 
       { return m_marketState; }
 
+    void printPlayers(std::ostream &os) const;
+    void printMarket(std::ostream &os) const;
+
     void consume(const Stanza &st);
     void clearTransactions() { m_transactions.clear(); }
     void updatePlayerList(const std::vector<Stanza> &stanzas);
@@ -110,7 +118,5 @@ class GameInfo
     std::vector<Transaction> m_transactions;
     MarketState m_marketState;
 };
-
-std::ostream &operator<<(std::ostream &os, const MarketState &market);
 
 #endif // GAMEINFO_H

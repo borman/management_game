@@ -18,7 +18,8 @@ void HumanActor::onTurn(Session *session)
 {
   assert(session != NULL);
 
-  cout << session->gameInfo().market();
+  session->gameInfo().printPlayers(cout);
+  session->gameInfo().printMarket(cout);
 
   bool turn_must_go_on = true;
   while (turn_must_go_on)

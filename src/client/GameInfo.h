@@ -59,7 +59,7 @@ class Transaction
     Type type() const { return m_type; }
     size_t playerId() const { return m_playerId; }
     unsigned int count() const { return m_count; }
-    unsigned int price() { return m_price; }
+    unsigned int price() const { return m_price; }
 
   private:
     Type m_type;
@@ -107,6 +107,7 @@ class GameInfo
 
     void printPlayers(std::ostream &os) const;
     void printMarket(std::ostream &os) const;
+    void printTransactions(std::ostream &os) const;
 
     void consume(const Stanza &st);
     void clearTransactions() { m_transactions.clear(); }

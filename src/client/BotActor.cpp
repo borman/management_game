@@ -27,6 +27,7 @@ void BotActor::onTurn(Session *session)
        << setw(5) << left << roundCounter << right 
        << Term::Brown(" ---------=>") << Term::SetRegular << endl << endl;
 
+  session->gameInfo().printTransactions(cout);
   session->gameInfo().printPlayers(cout);
   session->gameInfo().printMarket(cout);
 

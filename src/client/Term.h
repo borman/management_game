@@ -28,17 +28,21 @@ namespace Term
       const std::string &m_text;
   };
 
-  template<int start, int end>
-  inline std::ostream &operator <<(std::ostream &os, const SGRBlock<start, end> &colored)
-  {
-    return os << "\x1b[" << start << 'm' 
-              << colored.text() 
-              << "\x1b[" << end << 'm';
-  }
+  // Whether to really use colored output
+  extern bool allowColor;
 
   inline std::ostream &operator <<(std::ostream &os, const SGR &sgr)
   {
-    return os << "\x1b[" << sgr.code() << 'm';
+    if (allowColor)
+      return os << "\x1b[" << sgr.code() << 'm';
+    else
+      return os;
+  }
+
+  template<int start, int end>
+  inline std::ostream &operator <<(std::ostream &os, const SGRBlock<start, end> &colored)
+  {
+    return os << SGR(start) << colored.text() << SGR(end);
   }
 
   typedef SGRBlock<30, 39> Black;

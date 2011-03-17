@@ -125,6 +125,30 @@ void GameInfo::printPlayers(ostream &os) const
   os << "|=-----------------------------+---------" << endl;
 } 
 
+void GameInfo::printTransactions(ostream &os) const
+{
+  os << "|=----------    Auctions      -+---------" << endl;
+  os << "|    Type    Count     Price   | Player" << endl;
+  for (size_t i=0; i<m_transactions.size(); i++)
+  {
+    const Transaction &t = m_transactions[i];
+    if (t.type() == Transaction::AuctionProduct 
+     || t.type() == Transaction::AuctionRaw)
+      os << "| " 
+         << Term::SetGreen << Term::SetBold
+         << setw(7) << (t.type()==Transaction::AuctionRaw? "Raw": "Product")
+         << setw(9) << t.count() 
+         << setw(10) << t.price()
+         << Term::ResetColor << Term::SetRegular
+         << "   | " 
+         << Term::SetGreen << Term::SetBold
+         << player(t.playerId()).name() 
+         << Term::ResetColor << Term::SetRegular
+         << endl;
+  }
+  os << "|=-----------------------------+---------" << endl;
+} 
+
 void GameInfo::printMarket(ostream &os) const
 {
   os << "|=----------   Market state   ---------=|" << endl;

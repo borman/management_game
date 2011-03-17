@@ -1,3 +1,8 @@
+extern "C"
+{
+#include <unistd.h>
+}
+
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -15,6 +20,8 @@ using namespace std;
 int main()
 {
   cin.exceptions(ios_base::failbit | ios_base::eofbit);
+
+  Term::allowColor = isatty(STDOUT_FILENO);
 
   try
   {

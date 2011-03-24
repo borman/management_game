@@ -5,7 +5,7 @@
 #include "Session.h"
 #include "Term.h"
 
-using namespace std;
+
 
 void HumanActor::onGameStart(Session *session)
 {
@@ -23,7 +23,7 @@ void HumanActor::onTurn(Session *session)
   while (turn_must_go_on)
   {
     cout << Term::Bold("Your turn> ");
-    string s;
+    String s;
     getline(cin, s);
     try
     {

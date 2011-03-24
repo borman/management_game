@@ -5,13 +5,13 @@
 #include "Stanza.h"
 #include "Exceptions.h"
 
-Stanza::Stanza(const std::string &str1,
-           const std::string &str2,
-           const std::string &str3,
-           const std::string &str4,
-           const std::string &str5)
+Stanza::Stanza(const String &str1,
+           const String &str2,
+           const String &str3,
+           const String &str4,
+           const String &str5)
 {
-  const std::string *strs[] = {&str1, &str2, &str3, &str4, &str5};
+  const String *strs[] = {&str1, &str2, &str3, &str4, &str5};
   size_t n_args = 5;
   while (n_args>0 && strs[n_args-1]->empty())
     n_args--;
@@ -20,7 +20,7 @@ Stanza::Stanza(const std::string &str1,
 }
 
 
-Stanza Stanza::parse(const std::string &str)
+Stanza Stanza::parse(const String &str)
 {
   enum LexerState
   {
@@ -33,7 +33,7 @@ Stanza Stanza::parse(const std::string &str)
 
   LexerState state = Whitespace;
   Stanza stanza;
-  std::string word;
+  String word;
 
   // terminating zero is handled like a normal character 
   for (size_t i=0; i<str.length()+1; i++)
@@ -80,9 +80,9 @@ Stanza Stanza::parse(const std::string &str)
   return stanza;
 }
 
-std::string Stanza::toString() const
+String Stanza::toString() const
 {
-  std::string result;
+  String result;
   for (size_t i=0; i<words.size(); i++)
   {
     result += '"';

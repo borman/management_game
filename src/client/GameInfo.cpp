@@ -3,15 +3,15 @@
 #include "GameInfo.h"
 #include "Term.h"
 
-using namespace std;
 
-static unsigned int str2uint(const string &str)
+
+static unsigned int str2uint(const String &str)
 {
   return strtoul(str.c_str(), NULL, 10);
 }
 
-static Transaction::Type parseTransactionType(const string &type, 
-                                             const string &subtype)
+static Transaction::Type parseTransactionType(const String &type, 
+                                             const String &subtype)
 {
   Transaction::Type t = Transaction::Invalid;
   if (type == "auction")
@@ -64,7 +64,7 @@ void GameInfo::consume(const Stanza &st)
   }
 }
 
-void GameInfo::updatePlayerList(const vector<Stanza> &stanzas)
+void GameInfo::updatePlayerList(const Vector<Stanza> &stanzas)
 {
   if (m_players.empty())
   {
@@ -80,7 +80,7 @@ void GameInfo::updatePlayerList(const vector<Stanza> &stanzas)
 
   for (size_t i=0; i<stanzas.size(); i++)
   {
-    const string &playerName = stanzas[i][1];
+    const String &playerName = stanzas[i][1];
     unsigned int balance = str2uint(stanzas[i][3]);
     unsigned int n_factories = str2uint(stanzas[i][4]);
     unsigned int n_raw = str2uint(stanzas[i][5]);

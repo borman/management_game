@@ -13,21 +13,21 @@ class Stanza
 {
   public:
     Stanza() {}
-    Stanza(const std::string &str1,
-           const std::string &str2 = std::string(),
-           const std::string &str3 = std::string(),
-           const std::string &str4 = std::string(),
-           const std::string &str5 = std::string());
+    Stanza(const String &str1,
+           const String &str2 = String(),
+           const String &str3 = String(),
+           const String &str4 = String(),
+           const String &str5 = String());
 
     size_t size() const { return words.size(); }
-    std::string operator[](size_t index) const { return words[index]; } 
+    String operator[](size_t index) const { return words[index]; } 
 
-    std::string toString() const;
+    String toString() const;
 
-    static Stanza parse(const std::string &str);
+    static Stanza parse(const String &str);
 
   private:
-    std::vector<std::string> words;
+    Vector<String> words;
 };
 
 #endif // STANZA_H

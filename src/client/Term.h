@@ -20,17 +20,17 @@ namespace Term
   class SGRBlock
   {
     public:
-      SGRBlock(const std::string &text) : m_text(text) {}
-      const std::string &text() const { return m_text; }
+      SGRBlock(const String &text) : m_text(text) {}
+      const String &text() const { return m_text; }
 
     private:
-      const std::string &m_text;
+      const String &m_text;
   };
 
   // Whether to really use colored output
   extern bool allowColor;
 
-  inline std::ostream &operator <<(std::ostream &os, const SGR &sgr)
+  inline OutputStream &operator <<(OutputStream &os, const SGR &sgr)
   {
     if (allowColor)
       return os << "\x1b[" << sgr.code() << 'm';
@@ -39,7 +39,7 @@ namespace Term
   }
 
   template<int start, int end>
-  inline std::ostream &operator <<(std::ostream &os, const SGRBlock<start, end> &colored)
+  inline OutputStream &operator <<(OutputStream &os, const SGRBlock<start, end> &colored)
   {
     return os << SGR(start) << colored.text() << SGR(end);
   }

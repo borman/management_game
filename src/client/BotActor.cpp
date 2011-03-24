@@ -3,9 +3,10 @@
 #include "Stanza.h"
 #include "BotActor.h"
 #include "Session.h"
+#include "StdLib.h"
 #include "Term.h"
 
-using namespace std;
+
 
 void BotActor::onGameStart(Session *session)
 {

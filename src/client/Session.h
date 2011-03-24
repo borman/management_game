@@ -25,15 +25,15 @@ class Session
     void build(unsigned int count); 
     void signalReady(bool ready = true);
 
-    std::vector<Stanza> execCommand(const Stanza &command);
+    Vector<Stanza> execCommand(const Stanza &command);
   private:
-    void waitForState(const std::string &nextState);
+    void waitForState(const String &nextState);
     void processTextMessage(const Stanza &stanza);
     void processGameData(const Stanza &stanza);
 
     Connection m_conn;
     GameInfo m_gameInfo;
-    std::queue<Stanza> m_eventQueue;
+    Queue<Stanza> m_eventQueue;
 };
 
 #endif // SESSION_H

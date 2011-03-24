@@ -13,24 +13,24 @@ class Address
 class InetAddress: public Address
 {
   public:
-    InetAddress(const std::string &host, unsigned short port)
+    InetAddress(const String &host, unsigned short port)
       : m_host(host), m_port(port) {}
     virtual int connect() const;
 
   private:
-    std::string m_host;
+    String m_host;
     unsigned short m_port;
 };
 
 class UnixAddress: public Address
 {
   public:
-    UnixAddress(const std::string &path)
+    UnixAddress(const String &path)
       : m_path(path) {}
     virtual int connect() const;
 
   private:
-    std::string m_path;
+    String m_path;
 };
 
 class Connection
@@ -46,8 +46,8 @@ class Connection
     void readMoreData();
 
     int sock_fd;
-    std::string in_buffer;
-    std::queue<Stanza> in_queue;
+    String in_buffer;
+    Queue<Stanza> in_queue;
 };
 
 #endif // CONNECTION_H

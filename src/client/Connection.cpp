@@ -17,7 +17,7 @@ extern "C"
 
 // #define LOG_TRAFFIC
 
-using namespace std;
+
 
 Connection::Connection(const Address &addr)
   : sock_fd(-1)
@@ -32,7 +32,7 @@ Connection::~Connection()
 
 Connection &Connection::operator<<(const Stanza &stanza)
 {
-  const std::string text = stanza.toString();
+  const String text = stanza.toString();
 #ifdef LOG_TRAFFIC
   cout << Term::SetBold << Term::Green("[Socket] << ") 
        << Term::SetRegular << text << endl;

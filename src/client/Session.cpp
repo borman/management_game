@@ -4,9 +4,9 @@
 #include "Exceptions.h"
 #include "Term.h"
 
-using namespace std;
 
-static string uint2str(unsigned int u)
+
+static String uint2str(unsigned int u)
 {
   char str[16];
   sprintf(str, "%u", u);
@@ -92,7 +92,7 @@ void Session::signalReady(bool ready)
 }
 
 
-void Session::waitForState(const string &nextState)
+void Session::waitForState(const String &nextState)
 {
   while (true) 
   {
@@ -123,8 +123,8 @@ void Session::waitForState(const string &nextState)
 void Session::processTextMessage(const Stanza &stanza)
 {
 #if 0
-  string nick = stanza[1];
-  string text = stanza[2];
+  String nick = stanza[1];
+  String text = stanza[2];
 
   cout << Term::SetBold 
        << "Message [" << nick << "] -> " << Term::SetRegular
@@ -138,10 +138,10 @@ void Session::processGameData(const Stanza &stanza)
   m_gameInfo.consume(stanza);
 }
 
-vector<Stanza> Session::execCommand(const Stanza &command)
+Vector<Stanza> Session::execCommand(const Stanza &command)
 {
   m_conn << command;
-  vector<Stanza> reply;
+  Vector<Stanza> reply;
   while (true)
   {
     Stanza st;

@@ -6,41 +6,41 @@
 
 struct Exception 
 {
-  Exception(const std::string &text)
+  Exception(const String &text)
     : text(text) {}
 
-  std::string text;
+  String text;
 };
 
 struct OutOfBoundsException: Exception
 {
-  OutOfBoundsException(const std::string &text): Exception(text) {}
+  OutOfBoundsException(const String &text): Exception(text) {}
 };
 
 struct StringFormatException: Exception
 {
-  StringFormatException(const std::string &text): Exception(text) {}
+  StringFormatException(const String &text): Exception(text) {}
 };
 
 struct ParserException: Exception
 {
-  ParserException(const std::string &text): Exception(text) {}
+  ParserException(const String &text): Exception(text) {}
 };
 
 struct SocketException: Exception
 {
-  SocketException(const std::string &text): Exception(text), err(errno) {}
+  SocketException(const String &text): Exception(text), err(errno) {}
   int err;
 };
 
 struct CommandException: Exception
 {
-  CommandException(const std::string &text): Exception(text) {}
+  CommandException(const String &text): Exception(text) {}
 };
 
 struct UnexpectedStateException: Exception
 {
-  UnexpectedStateException(const std::string &text): Exception(text) {}
+  UnexpectedStateException(const String &text): Exception(text) {}
 };
 
 #endif // EXCEPTIONS_H

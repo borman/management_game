@@ -2,6 +2,7 @@
 #define GAMEINFO_H
 
 #include "Stanza.h"
+#include "StdLib.h"
 
 class Player
 {
@@ -11,7 +12,7 @@ class Player
         m_raw(0), m_product(0), m_factories(0), m_alive(true) {}
 
     size_t id() { return m_id; }
-    std::string name() const { return m_name; }
+    String name() const { return m_name; }
 
     bool alive() const { return m_alive; }
 
@@ -22,7 +23,7 @@ class Player
 
   private:
     size_t m_id;
-    std::string m_name;
+    String m_name;
     int m_balance;
     unsigned int m_raw;
     unsigned int m_product;
@@ -93,26 +94,26 @@ class GameInfo
     
     const Player &player(size_t id) const 
       { return m_players[id]; }
-    const Player &player(const std::string &name) const 
+    const Player &player(const String &name) const 
       { return m_players[m_playerIdByName.at(name)]; }
 
-    const std::vector<Transaction> &transactions() const
+    const Vector<Transaction> &transactions() const
       { return m_transactions; }
     const MarketState &market() const 
       { return m_marketState; }
 
-    void printPlayers(std::ostream &os) const;
-    void printMarket(std::ostream &os) const;
-    void printTransactions(std::ostream &os) const;
+    void printPlayers(OutputStream &os) const;
+    void printMarket(OutputStream &os) const;
+    void printTransactions(OutputStream &os) const;
 
     void consume(const Stanza &st);
     void clearTransactions() { m_transactions.clear(); }
-    void updatePlayerList(const std::vector<Stanza> &stanzas);
+    void updatePlayerList(const Vector<Stanza> &stanzas);
   private:
-    std::vector<Player> m_players;
-    std::map<std::string, size_t> m_playerIdByName;
+    Vector<Player> m_players;
+    StringMap<size_t> m_playerIdByName;
 
-    std::vector<Transaction> m_transactions;
+    Vector<Transaction> m_transactions;
     MarketState m_marketState;
 };
 

@@ -9,7 +9,7 @@ class GenericNameGenerator: public NameGenerator
     GenericNameGenerator(): number(0) {} 
 
     virtual void reset();
-    virtual std::string nextName();
+    virtual String nextName();
 
   private:
     unsigned int number;

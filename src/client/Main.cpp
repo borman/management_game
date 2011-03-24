@@ -14,7 +14,7 @@ extern "C"
 #include "BotActor.h"
 #include "Term.h"
 
-using namespace std;
+
 
 int main()
 {

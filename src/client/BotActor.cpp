@@ -1,7 +1,4 @@
 #include <cassert>
-#include <iostream>
-#include <iomanip>
-#include <algorithm>
 #include "Exceptions.h"
 #include "Stanza.h"
 #include "BotActor.h"

@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cassert>
-#include <iostream>
 #include "Session.h"
 #include "Exceptions.h"
 #include "Term.h"

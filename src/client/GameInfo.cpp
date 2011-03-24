@@ -1,7 +1,5 @@
 #include <cstdlib>
 #include <cassert>
-#include <iostream>
-#include <iomanip>
 #include "GameInfo.h"
 #include "Term.h"
 

@@ -1,7 +1,7 @@
 #ifndef NAMEGENERATOR_H
 #define NAMEGENERATOR_H
 
-#include <string>
+#include "StdLib.h"
 
 class NameGenerator
 {

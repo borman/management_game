@@ -1,8 +1,6 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include <string>
-#include <queue>
 #include "Stanza.h"
 
 class Address

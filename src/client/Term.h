@@ -1,8 +1,7 @@
 #ifndef TERM_H
 #define TERM_H
 
-#include <iostream>
-#include <string>
+#include "StdLib.h"
 
 namespace Term
 {

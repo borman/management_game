@@ -1,6 +1,4 @@
 #include <cassert>
-#include <iostream>
-#include <iomanip>
 #include "Exceptions.h"
 #include "Stanza.h"
 #include "HumanActor.h"

@@ -6,7 +6,6 @@ extern "C"
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-#include <iostream>
 
 #include "Exceptions.h"
 #include "Session.h"

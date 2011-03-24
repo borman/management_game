@@ -2,7 +2,7 @@
 #define EXCEPTIONS_H
 
 #include <cerrno>
-#include <string>
+#include "StdLib.h"
 
 struct Exception 
 {

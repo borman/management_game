@@ -2,8 +2,7 @@
 #define STANZA_H
 
 #include <cstddef>
-#include <string>
-#include <vector>
+#include "StdLib.h"
 
 /** Stanza class
  *

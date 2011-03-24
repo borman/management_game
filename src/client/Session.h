@@ -1,9 +1,7 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include <string>
-#include <vector>
-#include <queue>
+#include "StdLib.h"
 #include "Actor.h"
 #include "Connection.h"
 #include "GameInfo.h"

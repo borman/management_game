@@ -1,10 +1,6 @@
 #ifndef GAMEINFO_H
 #define GAMEINFO_H
 
-#include <vector>
-#include <string>
-#include <map>
-#include <iostream>
 #include "Stanza.h"
 
 class Player

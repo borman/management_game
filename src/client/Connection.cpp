@@ -10,7 +10,6 @@ extern "C"
 }
 #include <cerrno>
 #include <cstring>
-#include <iostream>
 
 #include "Connection.h"
 #include "Exceptions.h"

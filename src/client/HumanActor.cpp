@@ -16,15 +16,15 @@ void HumanActor::onTurn(Session *session)
 {
   assert(session != NULL);
 
-  session->gameInfo().printPlayers(cout);
-  session->gameInfo().printMarket(cout);
+  session->gameInfo().printPlayers(stdout);
+  session->gameInfo().printMarket(stdout);
 
   bool turn_must_go_on = true;
   while (turn_must_go_on)
   {
-    cout << Term::Bold("Your turn> ");
+    printf("%sYour turn>%s ", Term::SetBold, Term::SetRegular);
     String s;
-    getline(cin, s);
+    //getline(stdin, s); // ACHTUNG!
     try
     {
       Stanza st = Stanza::parse(s);
@@ -37,12 +37,12 @@ void HumanActor::onTurn(Session *session)
     }
     catch (const ParserException &e)
     {
-      cout << Term::Red("Command syntax error") << endl;
+      printf("%sCommand syntax error%s\n", Term::SetRed, Term::ResetColor);
       continue;
     }
     catch (const CommandException &e)
     {
-      cout << Term::Red("Command failed: ") << e.text << endl;
+      printf("%sCommand failed: %s%s\n", Term::SetRed, e.text.c_str(), Term::ResetColor);
       continue;
     }
   }

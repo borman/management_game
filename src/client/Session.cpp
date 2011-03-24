@@ -59,7 +59,7 @@ void Session::playGame(Actor *actor)
     catch (const UnexpectedStateException &e)
     {
       assert(e.text == "lobby");
-      cout << "The game is over." << endl;
+      printf("The game is over.\n");
       in_game = false;
     }
   }
@@ -123,12 +123,13 @@ void Session::waitForState(const String &nextState)
 void Session::processTextMessage(const Stanza &stanza)
 {
 #if 0
-  String nick = stanza[1];
-  String text = stanza[2];
+  const String &nick = stanza[1];
+  const String &text = stanza[2];
 
-  cout << Term::SetBold 
-       << "Message [" << nick << "] -> " << Term::SetRegular
-       << text << endl;
+  printf("%sMessage [%s] -> %s%s\n",
+      Term::SetBold, 
+      nick.c_str(), text.c_str(),
+      Term::SetRegular);
 #endif
 }
 

@@ -3,8 +3,6 @@
 #include "GameInfo.h"
 #include "Term.h"
 
-
-
 static unsigned int str2uint(const String &str)
 {
   return strtoul(str.c_str(), NULL, 10);
@@ -93,74 +91,62 @@ void GameInfo::updatePlayerList(const Vector<Stanza> &stanzas)
   }
 }
 
-void GameInfo::printPlayers(ostream &os) const
+void GameInfo::printPlayers(FILE *out) const
 {
-  os << "|=----------    Players       -+---------" << endl;
-  os << "| Balance  Fact.  Prod.    Raw | Name" << endl;
+  fprintf(out, "|=----------    Players       -+---------\n");
+  fprintf(out, "| Balance  Fact.  Prod.    Raw | Name\n");
   for (size_t i=0; i<m_players.size(); i++)
   {
     const Player &player = m_players[i];
     if (player.alive())
-      os << "| " 
-         << Term::SetGreen << Term::SetBold
-         << setw(7) << player.balance() 
-         << setw(7) << player.factoryCount() 
-         << setw(7) << player.productCount()
-         << setw(7) << player.rawCount()
-         << Term::ResetColor << Term::SetRegular
-         << " | " 
-         << Term::SetGreen << Term::SetBold
-         << player.name() 
-         << Term::ResetColor << Term::SetRegular
-         << endl;
+      fprintf(out, "| %s%s%7u%7u%7u%7u%s%s | %s%s%s%s%s\n",
+          Term::SetGreen, Term::SetBold,
+          player.balance(), player.factoryCount(), player.productCount(), player.rawCount(),
+          Term::ResetColor, Term::SetRegular,
+          Term::SetGreen, Term::SetBold,
+          player.name().c_str(),
+          Term::ResetColor, Term::SetRegular);
     else
-      os << "|                              | " 
-         << Term::SetBlack << Term::SetBold
-         << player.name() 
-         << Term::ResetColor << Term::SetRegular
-         << endl;
+      fprintf(out, "|                              | %s%s%s%s%s\n", 
+          Term::SetBlack, Term::SetBold,
+          player.name().c_str(),
+          Term::ResetColor, Term::SetRegular);
   }
-  os << "|=-----------------------------+---------" << endl;
+  fprintf(out, "|=-----------------------------+---------\n");
 } 
 
-void GameInfo::printTransactions(ostream &os) const
+void GameInfo::printTransactions(FILE *out) const
 {
-  os << "|=----------    Auctions      -+---------" << endl;
-  os << "|    Type    Count     Price   | Player" << endl;
+  fprintf(out, "|=----------    Auctions      -+---------\n");
+  fprintf(out, "|    Type    Count     Price   | Player\n");
   for (size_t i=0; i<m_transactions.size(); i++)
   {
     const Transaction &t = m_transactions[i];
     if (t.type() == Transaction::AuctionProduct 
-     || t.type() == Transaction::AuctionRaw)
-      os << "| " 
-         << Term::SetGreen << Term::SetBold
-         << setw(7) << (t.type()==Transaction::AuctionRaw? "Raw": "Product")
-         << setw(9) << t.count() 
-         << setw(10) << t.price()
-         << Term::ResetColor << Term::SetRegular
-         << "   | " 
-         << Term::SetGreen << Term::SetBold
-         << player(t.playerId()).name() 
-         << Term::ResetColor << Term::SetRegular
-         << endl;
+        || t.type() == Transaction::AuctionRaw)
+      fprintf(out, "| %s%s%7s%9u%10u%s%s   | %s%s%s%s%s\n",
+          Term::SetGreen, Term::SetBold,
+          (t.type()==Transaction::AuctionRaw? "Raw": "Product"),
+          t.count(), t.price(),
+          Term::ResetColor, Term::SetRegular,
+          Term::SetGreen, Term::SetBold,
+          player(t.playerId()).name().c_str(),
+          Term::ResetColor, Term::SetRegular);
   }
-  os << "|=-----------------------------+---------" << endl;
+  fprintf(out, "|=-----------------------------+---------\n");
 } 
 
-void GameInfo::printMarket(ostream &os) const
+void GameInfo::printMarket(FILE *out) const
 {
-  os << "|=----------   Market state   ---------=|" << endl;
-  os << "|---     Raw     ---|---   Product   ---|" << endl;
-  os << "|    Count    Price |    Count    Price |" << endl;
-  os << "|" << Term::SetBold << Term::SetGreen
-            << setw(9) << m_marketState.rawCount() 
-            << setw(9) << m_marketState.rawPrice() 
-            << Term::ResetColor << Term::SetRegular 
-            << " |"
-            << Term::SetBold << Term::SetGreen
-            << setw(9) << m_marketState.productCount()
-            << setw(9) << m_marketState.productPrice()
-            << Term::ResetColor << Term::SetRegular 
-            << " |" << endl;
-  os << "|=-------------------------------------=|" << endl;
+  fprintf(out, "|=----------   Market state   ---------=|\n");
+  fprintf(out, "|---     Raw     ---|---   Product   ---|\n");
+  fprintf(out, "|    Count    Price |    Count    Price |\n");
+  fprintf(out, "|%s%s%9u%9u%s%s |%s%s%9u%9u%s%s |\n", 
+            Term::SetBold, Term::SetGreen,
+            m_marketState.rawCount(), m_marketState.rawPrice(),
+            Term::ResetColor, Term::SetRegular,
+            Term::SetBold, Term::SetGreen,
+            m_marketState.productCount(), m_marketState.productPrice(),
+            Term::ResetColor, Term::SetRegular);
+  fprintf(out, "|=-------------------------------------=|\n");
 }

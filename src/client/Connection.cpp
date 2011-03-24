@@ -10,14 +10,13 @@ extern "C"
 }
 #include <cerrno>
 #include <cstring>
+#include <cstdio>
 
 #include "Connection.h"
 #include "Exceptions.h"
 #include "Term.h"
 
 // #define LOG_TRAFFIC
-
-
 
 Connection::Connection(const Address &addr)
   : sock_fd(-1)
@@ -34,8 +33,10 @@ Connection &Connection::operator<<(const Stanza &stanza)
 {
   const String text = stanza.toString();
 #ifdef LOG_TRAFFIC
-  cout << Term::SetBold << Term::Green("[Socket] << ") 
-       << Term::SetRegular << text << endl;
+  printf("%s%s[Socket] << %s%s%s\n",
+      Term::SetBold, Term::SetGreen,
+      Term::SetRegular, Term::ResetColor,
+      text.c_str());
 #endif
 
   const char *data = text.c_str();
@@ -76,8 +77,10 @@ void Connection::readMoreData()
         if (buf[i] == '\n')
         {
 #ifdef LOG_TRAFFIC
-          cout << Term::SetBold << Term::Cyan("[Socket] >> ") 
-               << Term::SetRegular << in_buffer << endl;
+          printf("%s%s[Socket] >> %s%s%s\n",
+              Term::SetBold, Term::SetCyan,
+              Term::SetRegular, Term::ResetColor,
+              in_buffer.c_str());
 #endif
           in_queue.push(Stanza::parse(in_buffer));
           in_buffer.clear();

@@ -1,6 +1,7 @@
 #ifndef GAMEINFO_H
 #define GAMEINFO_H
 
+#include <cstdio>
 #include "Stanza.h"
 #include "StdLib.h"
 
@@ -102,9 +103,9 @@ class GameInfo
     const MarketState &market() const 
       { return m_marketState; }
 
-    void printPlayers(OutputStream &os) const;
-    void printMarket(OutputStream &os) const;
-    void printTransactions(OutputStream &os) const;
+    void printPlayers(FILE *out) const;
+    void printMarket(FILE *out) const;
+    void printTransactions(FILE *out) const;
 
     void consume(const Stanza &st);
     void clearTransactions() { m_transactions.clear(); }

@@ -5,69 +5,21 @@
 
 namespace Term
 {
-  // Ansi SGR (set graphic redition) code
-  class SGR
-  {
-    public:
-      SGR(int code)
-        : m_code(code) {}
-      int code() const { return m_code; }
-    private:
-      int m_code;
-  };
+#define GEN_SGR(code) "\x1b[" #code "m"
+  const char *const SetBlack   = GEN_SGR(30);
+  const char *const SetRed     = GEN_SGR(31);
+  const char *const SetGreen   = GEN_SGR(32);
+  const char *const SetBrown   = GEN_SGR(33);
+  const char *const SetBlue    = GEN_SGR(34);
+  const char *const SetMagenta = GEN_SGR(35);
+  const char *const SetCyan    = GEN_SGR(36);
+  const char *const SetWhite   = GEN_SGR(37);
+  const char *const ResetColor = GEN_SGR(39);
 
-  template<int start, int end>
-  class SGRBlock
-  {
-    public:
-      SGRBlock(const String &text) : m_text(text) {}
-      const String &text() const { return m_text; }
-
-    private:
-      const String &m_text;
-  };
-
-  // Whether to really use colored output
-  extern bool allowColor;
-
-  inline OutputStream &operator <<(OutputStream &os, const SGR &sgr)
-  {
-    if (allowColor)
-      return os << "\x1b[" << sgr.code() << 'm';
-    else
-      return os;
-  }
-
-  template<int start, int end>
-  inline OutputStream &operator <<(OutputStream &os, const SGRBlock<start, end> &colored)
-  {
-    return os << SGR(start) << colored.text() << SGR(end);
-  }
-
-  typedef SGRBlock<30, 39> Black;
-  typedef SGRBlock<31, 39> Red;
-  typedef SGRBlock<32, 39> Green;
-  typedef SGRBlock<33, 39> Brown;
-  typedef SGRBlock<34, 39> Blue;
-  typedef SGRBlock<35, 39> Magenta;
-  typedef SGRBlock<36, 39> Cyan;
-  typedef SGRBlock<37, 39> White;
-
-  typedef SGRBlock<1, 22> Bold; 
-
-  const SGR SetBlack  (30);
-  const SGR SetRed    (31);
-  const SGR SetGreen  (32);
-  const SGR SetBrown  (33);
-  const SGR SetBlue   (34);
-  const SGR SetMagenta(35);
-  const SGR SetCyan   (36);
-  const SGR SetWhite  (37);
-  const SGR ResetColor(39);
-
-  const SGR SetBold   ( 1);
-  const SGR SetFaint  ( 2);
-  const SGR SetRegular(22);
+  const char *const SetBold    = GEN_SGR( 1);
+  const char *const SetFaint   = GEN_SGR( 2);
+  const char *const SetRegular = GEN_SGR(22);
+#undef GEN_SGR
 }
 
 #endif // TERM_H

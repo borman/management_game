@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdio>
 #include "Exceptions.h"
 #include "Stanza.h"
 #include "BotActor.h"
@@ -20,14 +21,14 @@ void BotActor::onTurn(Session *session)
   assert(session != NULL);
 
   roundCounter++;
-  cout << endl << Term::SetBold
-       << Term::Brown("<=----------") << "      Round " 
-       << setw(5) << left << roundCounter << right 
-       << Term::Brown(" ---------=>") << Term::SetRegular << endl << endl;
+  printf("%s%s<=----------%s      Round %-5u %s---------=>%s%s\n",
+      Term::SetBold, Term::SetBrown, Term::ResetColor,
+      roundCounter,
+      Term::SetBrown, Term::ResetColor, Term::SetRegular);
 
-  session->gameInfo().printTransactions(cout);
-  session->gameInfo().printPlayers(cout);
-  session->gameInfo().printMarket(cout);
+  session->gameInfo().printTransactions(stdout);
+  session->gameInfo().printPlayers(stdout);
+  session->gameInfo().printMarket(stdout);
 
   const MarketState &market = session->gameInfo().market();
 

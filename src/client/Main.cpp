@@ -18,9 +18,7 @@ extern "C"
 
 int main()
 {
-  cin.exceptions(ios_base::failbit | ios_base::eofbit);
-
-  Term::allowColor = isatty(STDOUT_FILENO);
+  // Term::allowColor = isatty(STDOUT_FILENO);
 
   try
   {
@@ -33,16 +31,14 @@ int main()
   }
   catch (const SocketException &e)
   {
-    cout << "Socket exception in " << e.text << ": " << Term::Red(strerror(e.err)) << endl;
+    printf("Socket exception in %s: %s%s%s\n",
+        e.text.c_str(),
+        Term::SetRed, strerror(e.err), Term::ResetColor);
   }
   catch (const Exception &e)
   {
-    cout << "Generic exception: " << Term::Red(e.text) << endl;
-  }
-  catch (const ios_base::failure &e)
-  {
-    cout << "Input failed" << endl;
-    exit(1);
+    printf("Generic exception: %s%s%s\n",
+        Term::SetRed, e.text.c_str(), Term::ResetColor);
   }
   catch (...)
   {

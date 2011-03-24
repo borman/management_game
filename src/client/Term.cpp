@@ -1,3 +1,3 @@
 #include "Term.h"
 
-bool Term::allowColor = true;
+//bool Term::allowColor = true;

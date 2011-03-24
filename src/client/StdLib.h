@@ -4,16 +4,12 @@
 #ifdef USE_STL
 
 #include <algorithm>
-#include <iomanip>
-#include <iostream>
 #include <map>
 #include <queue>
 #include <string>
 #include <vector>
 
 typedef std::string String;
-typedef std::ostream OutputStream;
-typedef std::istream InputStream;
 
 template<class T>
 class Vector: public std::vector<T>
@@ -38,6 +34,7 @@ using namespace std;
 #include "ministl/Queue.h"
 #include "ministl/Vector.h"
 #include "ministl/StringMap.h"
+#include "ministl/Util.h"
 
 #endif
 

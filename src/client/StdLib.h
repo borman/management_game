@@ -10,6 +10,7 @@
 #include <vector>
 
 typedef std::string String;
+typedef std::map<String, size_t> StringMap;
 
 template<class T>
 class Vector: public std::vector<T>
@@ -18,11 +19,6 @@ class Vector: public std::vector<T>
 
 template<class T>
 class Queue: public std::queue<T>
-{
-};
-
-template<class T>
-class StringMap: public std::map<String, T>
 {
 };
 

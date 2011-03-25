@@ -50,8 +50,8 @@ class Transaction
       ExpenseConstructionEnd
     };
 
-    Transaction(Type t, unsigned int player_id, 
-                unsigned int count, unsigned int price)
+    Transaction(Type t=Invalid, unsigned int player_id=0, 
+                unsigned int count=0, unsigned int price=0)
       : m_type(t), m_playerId(player_id), m_count(count), m_price(price) {}
 
     Type type() const { return m_type; }
@@ -112,7 +112,7 @@ class GameInfo
     void updatePlayerList(const Vector<Stanza> &stanzas);
   private:
     Vector<Player> m_players;
-    StringMap<size_t> m_playerIdByName;
+    StringMap m_playerIdByName;
 
     Vector<Transaction> m_transactions;
     MarketState m_marketState;

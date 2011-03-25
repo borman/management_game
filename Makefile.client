@@ -1,5 +1,10 @@
 # Target description
-SOURCE_DIRS := src/client
+SOURCE_DIRS = src/client
+
+ifneq ($(USE_STL),1)
+SOURCE_DIRS += src/client/ministl
+endif
+
 SOURCES := $(notdir $(wildcard $(addsuffix /*.cpp,$(SOURCE_DIRS))))
 TARGET := management-bot
 INCLUDEPATH = src
@@ -13,7 +18,11 @@ USE_GCC := 1
 include makefiles/config.mk
 
 DEFINES += _POSIX_C_SOURCE=201011
+
+ifeq ($(USE_STL),1)
 DEFINES += USE_STL
+endif
+
 
 # Default rules
 include makefiles/rules.mk

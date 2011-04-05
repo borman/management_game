@@ -26,11 +26,11 @@ using namespace std;
 
 #else
 
-#include "ministl/String.h"
-#include "ministl/Queue.h"
-#include "ministl/Vector.h"
-#include "ministl/StringMap.h"
-#include "ministl/Util.h"
+#include "String.h"
+#include "Queue.h"
+#include "Vector.h"
+#include "Map.h"
+#include "Util.h"
 
 #endif
 

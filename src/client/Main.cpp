@@ -11,7 +11,7 @@ extern "C"
 #include "Session.h"
 #include "GenericNameGenerator.h"
 #include "HumanActor.h"
-#include "BotActor.h"
+#include "DumbActor.h"
 #include "Term.h"
 
 
@@ -22,7 +22,7 @@ int main()
 
   try
   {
-    BotActor actor;
+    DumbActor actor;
     GenericNameGenerator namegen;
     //Session session(InetAddress("127.0.0.1", 8982));
     Session session(UnixAddress("/tmp/management-game"));

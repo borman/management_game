@@ -7,7 +7,7 @@ template<class T>
 class Vector
 {
   public:
-    Vector(): m_size(0) {}
+    Vector(size_t size = 0): m_size(0) { resize(size); }
     ~Vector() { clear(); }
 
     Vector(const Vector<T> &other)
@@ -59,6 +59,10 @@ class Vector
     {
       m_data.reserve(m_size+1);
       m_data[m_size++] = new T(v);
+    }
+    void pop_back()
+    {
+      resize(m_size-1);
     }
   private:
     size_t m_size;

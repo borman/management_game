@@ -35,7 +35,9 @@ void BotActor::onTurn(Session *session)
   unsigned int rawToBuy = min(market.rawCount(), 2U); 
   unsigned int rawPrice = market.rawPrice();
 
-  unsigned int productToSell = min(market.productCount(), 2U);
+  unsigned int haveProduct = session->gameInfo()
+    .player(session->playerName()).productCount();
+  unsigned int productToSell = min(market.productCount(), haveProduct);
   unsigned int productPrice = market.productPrice();
 
   unsigned int productToProduce = 2;

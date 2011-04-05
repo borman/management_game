@@ -26,7 +26,9 @@ void Session::login(NameGenerator *namegen)
   {
     try
     {
-      execCommand(Stanza("auth", "player", namegen->nextName()));
+      String name = namegen->nextName();
+      execCommand(Stanza("auth", "player", name));
+      m_thisPlayer = name;
       success = true;
     }
     catch (const CommandException &e)

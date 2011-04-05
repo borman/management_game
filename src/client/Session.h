@@ -25,6 +25,8 @@ class Session
     void build(unsigned int count); 
     void signalReady(bool ready = true);
 
+    String playerName() const  { return m_thisPlayer; }
+
     Vector<Stanza> execCommand(const Stanza &command);
   private:
     void waitForState(const String &nextState);
@@ -34,6 +36,7 @@ class Session
     Connection m_conn;
     GameInfo m_gameInfo;
     Queue<Stanza> m_eventQueue;
+    String m_thisPlayer;
 };
 
 #endif // SESSION_H

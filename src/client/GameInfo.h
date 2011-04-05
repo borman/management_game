@@ -112,7 +112,7 @@ class GameInfo
     void updatePlayerList(const Vector<Stanza> &stanzas);
   private:
     Vector<Player> m_players;
-    StringMap m_playerIdByName;
+    Map<String, size_t> m_playerIdByName;
 
     Vector<Transaction> m_transactions;
     MarketState m_marketState;

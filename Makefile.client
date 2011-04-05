@@ -1,13 +1,9 @@
 # Target description
-SOURCE_DIRS = src/client
-
-ifneq ($(USE_STL),1)
-SOURCE_DIRS += src/client/ministl
-endif
+SOURCE_DIRS = src/client src/client/ministl
 
 SOURCES := $(notdir $(wildcard $(addsuffix /*.cpp,$(SOURCE_DIRS))))
 TARGET := management-bot
-INCLUDEPATH = src
+INCLUDEPATH = src/client src/client/ministl
 
 vpath %.cpp $(SOURCE_DIRS)
 vpath %.h $(SOURCE_DIRS)

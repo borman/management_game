@@ -21,6 +21,7 @@ void BotActor::onTurn(Session *session)
   assert(session != NULL);
 
   roundCounter++;
+  printf("\n");
   printf("%s%s<=----------%s      Round %-5u %s---------=>%s%s\n",
       Term::SetBold, Term::SetBrown, Term::ResetColor,
       roundCounter,

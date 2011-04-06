@@ -11,18 +11,18 @@ extern "C"
 #include "Session.h"
 #include "GenericNameGenerator.h"
 #include "HumanActor.h"
-#include "DumbActor.h"
+#include "BotActor.h"
 #include "Term.h"
-
+#include "LoadedProgram.h"
 
 
 int main()
 {
   // Term::allowColor = isatty(STDOUT_FILENO);
-
   try
   {
-    DumbActor actor;
+    LoadedProgram botProgram("bot.msl");
+    BotActor actor(botProgram);
     GenericNameGenerator namegen;
     //Session session(InetAddress("127.0.0.1", 8982));
     Session session(UnixAddress("/tmp/management-game"));
@@ -39,11 +39,6 @@ int main()
   {
     printf("Generic exception: %s%s%s\n",
         Term::SetRed, e.text.c_str(), Term::ResetColor);
-  }
-  catch (...)
-  {
-    printf("Alien exception caught\n");
-    abort();
   }
 
   return 0;

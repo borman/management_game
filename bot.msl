@@ -1,0 +1,20 @@
+fun not X
+  return if X then false else true
+end
+
+fun onStart []
+  println "Game started"
+end
+
+fun check [Status, Message]
+  if not Status then
+    println ["Command failed:", Message]
+  end
+end
+
+fun onTurn []
+  check buy [2, 500]
+  check sell [2, 5500]
+  check produce 2
+  println "My turn"
+end

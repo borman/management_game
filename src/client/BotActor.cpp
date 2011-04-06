@@ -71,55 +71,22 @@ void BotActor::marketState(ListedBuiltin *l_self, Context &context)
 
 void BotActor::buy(ListedBuiltin *l_self, Context &context)
 {
-  BotActor *self = static_cast<BotActor *>(l_self);
-
-  bool result = true;
-  Atom message("Ok", context.strings);
-  try
-  {
-    context.pop(Value::TupClose);
-    int price = context.pop(Value::Int).asInt();
-    int count = context.pop(Value::Int).asInt();
-    context.pop(Value::TupOpen);
-    self->m_thisSession->buy(count, price);
-  }
-  catch (const CommandException &e)
-  {
-    result = false;
-    message = Atom(e.text.c_str(), context.strings);
-  }
-  context.push(Value::TupOpen);
-  context.push(result);
-  context.push(Value(Value::String, message.id()));
-  context.push(Value::TupClose);
+  execCommand(l_self, context, do_buy);
 }
 
 void BotActor::sell(ListedBuiltin *l_self, Context &context)
 {
-  BotActor *self = static_cast<BotActor *>(l_self);
-
-  bool result = true;
-  Atom message("Ok", context.strings);
-  try
-  {
-    context.pop(Value::TupClose);
-    int price = context.pop(Value::Int).asInt();
-    int count = context.pop(Value::Int).asInt();
-    context.pop(Value::TupOpen);
-    self->m_thisSession->sell(count, price);
-  }
-  catch (const CommandException &e)
-  {
-    result = false;
-    message = Atom(e.text.c_str(), context.strings);
-  }
-  context.push(Value::TupOpen);
-  context.push(result);
-  context.push(Value(Value::String, message.id()));
-  context.push(Value::TupClose);
+  execCommand(l_self, context, do_sell);
 }
 
 void BotActor::produce(ListedBuiltin *l_self, Context &context)
+{
+  execCommand(l_self, context, do_produce);
+}
+
+// ======= Helpers
+
+void BotActor::execCommand(ListedBuiltin *l_self, Context &context, Command cmd)
 {
   BotActor *self = static_cast<BotActor *>(l_self);
 
@@ -127,8 +94,7 @@ void BotActor::produce(ListedBuiltin *l_self, Context &context)
   Atom message("Ok", context.strings);
   try
   {
-    int count = context.pop(Value::Int).asInt();
-    self->m_thisSession->produce(count);
+    cmd(self->m_thisSession, context);
   }
   catch (const CommandException &e)
   {
@@ -137,7 +103,31 @@ void BotActor::produce(ListedBuiltin *l_self, Context &context)
   }
   context.push(Value::TupOpen);
   context.push(result);
-  context.push(Value(Value::String, message.id()));
+  context.push(message);
   context.push(Value::TupClose);
+}
+
+void BotActor::do_buy(Session *session, Context &context)
+{
+  context.pop(Value::TupClose);
+  int price = context.pop(Value::Int).asInt();
+  int count = context.pop(Value::Int).asInt();
+  context.pop(Value::TupOpen);
+  session->buy(count, price);
+}
+
+void BotActor::do_sell(Session *session, Context &context)
+{
+  context.pop(Value::TupClose);
+  int price = context.pop(Value::Int).asInt();
+  int count = context.pop(Value::Int).asInt();
+  context.pop(Value::TupOpen);
+  session->sell(count, price);
+}
+
+void BotActor::do_produce(Session *session, Context &context)
+{
+  int count = context.pop(Value::Int).asInt();
+  session->produce(count);
 }
 

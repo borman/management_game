@@ -13,8 +13,10 @@ fun check [Status, Message]
 end
 
 fun onTurn []
-  check buy [2, 500]
-  check sell [2, 5500]
-  check produce 2
   println "My turn"
+  println ["Market:", marketState []]
+  [RawCount, RawPrice, ProdCount, ProdPrice] = marketState []
+  check buy [2, RawPrice]
+  check sell [2, ProdPrice]
+  check produce 2
 end

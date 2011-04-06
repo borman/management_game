@@ -1,9 +1,13 @@
 fun not X
-  return if X then false else true
+  return if X 
+    then false 
+    else true
 end
 
-fun onStart []
-  println "Game started"
+fun min [A, B]
+  return if A<B
+    then A
+    else B
 end
 
 fun check [Status, Message]
@@ -12,11 +16,31 @@ fun check [Status, Message]
   end
 end
 
+fun onStart []
+  println "Game started"
+end
+
 fun onTurn []
+  NPlayers = nPlayers []
+
+  ; Print state
   println "My turn"
+  println [NPlayers, "players in game"]
+  for I from 1 to NPlayers do
+    println player [I, ["Name", "Balance"]]
+  end
+  println ["It's me:", player [thisPlayer [], ["Name", "Balance"]]]
   println ["Market:", marketState []]
+
+  ; Fetch data
+  [Balance, Raw, Product] = player [thisPlayer [], ["Balance", "Raw", "Product"]]
   [RawCount, RawPrice, ProdCount, ProdPrice] = marketState []
-  check buy [2, RawPrice]
-  check sell [2, ProdPrice]
+
+  Raw = min[Raw, RawCount]
+  Product = min[Product, ProdCount]
+
+  ; Perform commands
+  check buy [Raw, RawPrice]
+  check sell [Product, ProdPrice]
   check produce 2
 end

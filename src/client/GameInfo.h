@@ -12,7 +12,7 @@ class Player
       : m_id(0), m_name(), m_balance(0), 
         m_raw(0), m_product(0), m_factories(0), m_alive(true) {}
 
-    size_t id() { return m_id; }
+    size_t id() const { return m_id; }
     String name() const { return m_name; }
 
     bool alive() const { return m_alive; }

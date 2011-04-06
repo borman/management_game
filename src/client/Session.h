@@ -25,7 +25,7 @@ class Session
     void build(unsigned int count); 
     void signalReady(bool ready = true);
 
-    String playerName() const  { return m_thisPlayer; }
+    String playerName() const { return m_thisPlayer; }
 
     Vector<Stanza> execCommand(const Stanza &command);
   private:

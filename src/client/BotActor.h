@@ -16,6 +16,9 @@ class BotActor: public Actor, public ListedBuiltin
     virtual void onGameStart(Session *session);
     virtual void onTurn(Session *session);
   private:
+    // Player data field ids
+    enum PlayerProp {Name, Alive, Balance, Raw, Product, Factories};
+
     typedef void (*Command)(Session *session, Context &context);
 
     // [rawCount, rawPrice, productCount, productPrice]
@@ -25,6 +28,9 @@ class BotActor: public Actor, public ListedBuiltin
     static void buy(ListedBuiltin *self, Context &context);
     static void sell(ListedBuiltin *self, Context &context);
     static void produce(ListedBuiltin *self, Context &context);
+    static void nPlayers(ListedBuiltin *self, Context &context);
+    static void player(ListedBuiltin *self, Context &context);
+    static void thisPlayer(ListedBuiltin *self, Context &context);
 
     static void do_buy(Session *session, Context &context);
     static void do_sell(Session *session, Context &context);

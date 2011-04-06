@@ -132,6 +132,8 @@ void Session::processTextMessage(const Stanza &stanza)
       Term::SetBold, 
       nick.c_str(), text.c_str(),
       Term::SetRegular);
+#else
+  (void)stanza;
 #endif
 }
 

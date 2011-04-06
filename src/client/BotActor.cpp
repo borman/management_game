@@ -13,6 +13,9 @@
  * [Status, Message] = buy [Count, Price]
  * [Status, Message] = sell [Count, Price]
  * [Status, Message] = produce Count
+ * Count = nPlayers []
+ * Value = player [Index, Prop]
+ * // [Value1, Value2, ...] = player [Index, [Prop1, Prop2, ...]]
  */
 
 const ListedBuiltin::Definition BotActor::defs[] =
@@ -20,7 +23,10 @@ const ListedBuiltin::Definition BotActor::defs[] =
   {"marketState", BotActor::marketState},
   {"buy", BotActor::buy},
   {"sell", BotActor::sell},
-  {"produce", BotActor::produce}
+  {"produce", BotActor::produce},
+  {"nPlayers", BotActor::nPlayers},
+  {"player", BotActor::player},
+  {"thisPlayer", BotActor::thisPlayer}
 };
 
 BotActor::BotActor(LoadedProgram &program)
@@ -82,6 +88,88 @@ void BotActor::sell(ListedBuiltin *l_self, Context &context)
 void BotActor::produce(ListedBuiltin *l_self, Context &context)
 {
   execCommand(l_self, context, do_produce);
+}
+
+void BotActor::nPlayers(ListedBuiltin *l_self, Context &context)
+{
+  BotActor *self = static_cast<BotActor *>(l_self);
+
+  // Empty argument
+  context.popdelete();
+
+  context.push(int(self->m_thisSession->gameInfo().playerCount()));
+}
+
+void BotActor::player(ListedBuiltin *l_self, Context &context)
+{
+  BotActor *self = static_cast<BotActor *>(l_self);
+
+  Stack<PlayerProp> props;
+
+  context.pop(Value::TupClose);
+  context.pop(Value::TupClose);
+  // Read props
+  while (context.stack.top().type() != Value::TupOpen)
+  {
+    Atom prop(context.pop(Value::String).asString(), context.strings);
+    if (prop == "Name")
+      props.push(Name);
+    else if (prop == "Alive")
+      props.push(Alive);
+    else if (prop == "Balance")
+      props.push(Balance);
+    else if (prop == "Raw")
+      props.push(Raw);
+    else if (prop == "Product")
+      props.push(Product);
+    else if (prop == "Factories")
+      props.push(Factories);
+  }
+  context.pop(Value::TupOpen);
+  int playerId = context.pop(Value::Int).asInt() - 1;
+  context.pop(Value::TupOpen);
+
+  const Player &player = self->m_thisSession->gameInfo().player(playerId);
+  context.push(Value::TupOpen);
+  while (!props.empty())
+  {
+    switch (props.top())
+    {
+      case Name:
+        context.push(Atom(player.name().c_str(), context.strings));
+        break;
+      case Alive:
+        context.push(player.alive());
+        break;
+      case Balance:
+        context.push(player.balance());
+        break;
+      case Raw:
+        context.push(int(player.rawCount()));
+        break;
+      case Product:
+        context.push(int(player.productCount()));
+        break;
+      case Factories:
+        context.push(int(player.factoryCount()));
+        break;
+      default:
+        break;
+    }
+    props.pop();
+  }
+  context.push(Value::TupClose);
+}
+
+void BotActor::thisPlayer(ListedBuiltin *l_self, Context &context)
+{
+  BotActor *self = static_cast<BotActor *>(l_self);
+
+  // Empty argument
+  context.popdelete();
+  
+  Session *session = self->m_thisSession;
+  context.push(int(session->gameInfo().player(session->playerName()).id() + 1));
 }
 
 // ======= Helpers

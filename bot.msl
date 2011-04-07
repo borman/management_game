@@ -10,37 +10,110 @@ fun min [A, B]
     else B
 end
 
+fun max [A, B]
+  return if A>B
+    then A
+    else B
+end
+
+fun arrayMax A
+  N = size A
+  Max = $A(1)
+  for I from 1 to N do
+    Max = max [Max, $A(I)]
+  end
+  return Max
+end
+
+fun arrayMin A
+  N = size A
+  Min = $A(1)
+  for I from 1 to N do
+    Max = min [Min, $A(I)]
+  end
+  return Max
+end
+
 fun check [Status, Message]
   if not Status then
     println ["Command failed:", Message]
   end
 end
 
+global AuctionRaw
+global AuctionProduct
+
+global PrevRawCount
+global PrevRawPrice
+global PrevProductCount
+global PrevProductPrice
+
+global MyFutureFactories
+
 fun onStart []
   println "Game started"
+  AuctionRaw = array nPlayers[]
+  AuctionProduct = array nPlayers[]
+  [MyFutureFactories] = player [thisPlayer[], ["Factories"]]
 end
 
 fun onTurn []
   NPlayers = nPlayers []
+  NTransactions = nTransactions []
 
   ; Print state
-  println "My turn"
   println [NPlayers, "players in game"]
   for I from 1 to NPlayers do
-    println player [I, ["Name", "Balance"]]
+    [Alive] = player [I, ["Alive"]]
+    if Alive then
+      println player [I, ["Name", "Balance", "Raw", "Product", "Factories"]]
+    end
   end
-  println ["It's me:", player [thisPlayer [], ["Name", "Balance"]]]
   println ["Market:", marketState []]
+  println ["It's me:", player [thisPlayer [], ["Name", "Balance", "Raw", "Product", "Factories"]]]
 
-  ; Fetch data
-  [Balance, Raw, Product] = player [thisPlayer [], ["Balance", "Raw", "Product"]]
-  [RawCount, RawPrice, ProdCount, ProdPrice] = marketState []
+  ; Get market state
+  [RawCount, RawPrice, ProductCount, ProductPrice] = marketState []
 
-  Raw = min[Raw, RawCount]
-  Product = min[Product, ProdCount]
+  ; My status
+  [MyBalance, MyRaw, MyProduct, MyFactories] = 
+    player [thisPlayer[], ["Balance", "Raw", "Product", "Factories"]]
+
+
+  ; Check auctions
+  for I from 1 to NPlayers do
+    $AuctionRaw(I) = 0
+    $AuctionProduct(I) = 0
+  end
+  for I from 1 to NTransactions do
+    [Type, Player, Count, Price] = transaction I
+    if Type = "AuctionRaw"    then $AuctionRaw(Player) = Price-PrevRawPrice end
+    if Type = "AuctionProduct" then $AuctionProduct(Player) = Price-PrevProductPrice end
+  end
+
+  ; Best +/- 1
+  ThisRawPrice = (arrayMin AuctionRaw) + 1 + RawPrice
+  ThisProductPrice = (arrayMin AuctionProduct) - 1 + ProductPrice
+
+  ThisRawCount = max [MyFactories-MyRaw, 0]
+  ThisProductCount = min [MyProduct, ProductCount]
+
+  println ["AuctionRaw:", AuctionRaw]
+  println ["Will buy", ThisRawCount, "for", ThisRawPrice]
+  println ["AuctionProduct:", AuctionProduct]
+  println ["Will sell", ThisProductCount, "for", ThisProductPrice]
+
 
   ; Perform commands
-  check buy [Raw, RawPrice]
-  check sell [Product, ProdPrice]
+  check buy [ThisRawCount, ThisRawPrice]
+  check sell [ThisProductCount, ThisProductPrice]
   check produce 2
+
+  if MyBalance > MyFutureFactories*25000 then
+    check build 1
+    MyFutureFactories = MyFutureFactories+1
+  end
+
+  ; Save for the next turn
+  [PrevRawCount, PrevRawPrice, PrevProductCount, PrevProductPrice] = marketState []
 end

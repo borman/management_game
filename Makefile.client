@@ -20,6 +20,7 @@ USE_GCC := 1
 include makefiles/config.mk
 
 DEFINES += _POSIX_C_SOURCE=201011
+DEFINES += DEBUG_OUTPUT
 
 # Default rules
 include makefiles/rules.mk

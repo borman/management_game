@@ -44,6 +44,7 @@ void Session::playGame(Actor *actor)
   signalReady();
   waitForState("lobby_ready");
   waitForState("game");
+  m_gameInfo.updatePlayerList(execCommand(Stanza("lsgame")));
   actor->onGameStart(this);
   bool in_game = true;
   m_gameInfo = GameInfo(); // Reset game info

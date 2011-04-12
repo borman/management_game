@@ -42,7 +42,12 @@ static void network_log(const char *format, va_list args);
     va_end(args); \
   }  
 
+#ifdef USE_DEBUG_TRACE_OUTPUT
 DEBUG_FUNC(trace,   "[ Trace ]", TERM_FG_CYAN)
+#else
+void trace(const char *format, ...) {}
+#endif 
+
 DEBUG_FUNC(warning, "[Warning]", TERM_FG_RED)
 
 void message(const char *format, ...) 

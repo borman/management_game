@@ -8,13 +8,14 @@ SOURCE_DIRS = src/client \
 
 INCLUDEPATH = $(SOURCE_DIRS)
 
-SOURCES := $(notdir $(wildcard $(addsuffix /*.cpp,$(SOURCE_DIRS))))
-TARGET := management-bot
+SOURCES := $(notdir $(wildcard $(addsuffix /*.cpp,$(SOURCE_DIRS)))) 
+TARGET := bot
 
 vpath %.cpp $(SOURCE_DIRS)
+vpath %.c $(SOURCE_DIRS)
 vpath %.h $(SOURCE_DIRS)
 
-USE_GCC := 1
+USE_GCC := 0
 
 # Default config
 include makefiles/config.mk

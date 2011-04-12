@@ -1,26 +1,19 @@
-# Target description
-MODULES = core server
-SOURCE_DIRS = $(addprefix src/,$(MODULES))
-SOURCES = $(notdir $(wildcard $(addsuffix /*.c,$(SOURCE_DIRS))))
-TARGET = management-server
-INCLUDEPATH = src
+# Meta-makefile
 
-vpath %.c $(SOURCE_DIRS)
-vpath %.h $(SOURCE_DIRS)
+.PHONY: all client server clean clean-client clean-server
 
-# Default config
-include makefiles/config.mk
+all: client server
 
-DEFINES += _POSIX_C_SOURCE=201011
+client:
+	$(MAKE) -f Makefile.client
 
-# Prefix each log message with current time
-DEFINES += USE_LOG_TIME_MARKERS
-# Do runtime type checks for list operations
-DEFINES += USE_LIST_TYPEINFO
-# Print messages in color
-DEFINES += USE_TERMINAL_COLORS
-# Use C extension macros
-DEFINES += USE_C_EXT
+server:
+	$(MAKE) -f Makefile.server
 
-# Default rules
-include makefiles/rules.mk
+clean: clean-client clean-server
+
+clean-client:
+	$(MAKE) -f Makefile.client clean
+
+clean-server:
+	$(MAKE) -f Makefile.server clean

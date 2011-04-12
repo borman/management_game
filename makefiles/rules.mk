@@ -1,7 +1,8 @@
 # Override default implicit rules
 
-OBJDIR := build/obj
-DEPDIR := build/dep
+BUILDDIR := .build-$(TARGET)
+OBJDIR := $(BUILDDIR)/obj
+DEPDIR := $(BUILDDIR)/dep
 
 CFLAGS += $(addprefix -I,$(INCLUDEPATH))
 CFLAGS += $(addprefix -D,$(DEFINES))
@@ -13,7 +14,7 @@ SOURCES_CXX := $(filter %.cpp,$(SOURCES))
 OBJECTS := $(addprefix $(OBJDIR)/,$(SOURCES_C:%.c=%.o) $(SOURCES_CXX:%.cpp=%.o))
 DEPENDS := $(addprefix $(DEPDIR)/,$(SOURCES_C:%.c=%.d) $(SOURCES_CXX:%.cpp=%.d))
 
-GENERATED := $(TARGET) 
+GENERATED := $(TARGET) $(BUILDDIR)
 
 .PHONY: all clean
 
@@ -21,9 +22,7 @@ all: $(TARGET)
 
 clean:
 	@echo -e "\tRM\t$(GENERATED)"
-	$(A)rm -f $(GENERATED) 
-	@echo -e "\tRM\tbuild"
-	$(A)rm -rf build 
+	$(A)rm -rf $(GENERATED) 
 
 $(OBJDIR)/%.o: %.c
 	@echo -e "\tCC\t$(<F)"
@@ -45,9 +44,9 @@ $(TARGET): $(OBJECTS)
 	@echo -e "\tLD\t$(^F)"
 	$(A)$(LINK) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
-$(OBJECTS): Makefile | $(OBJDIR)
+$(OBJECTS): Makefile Makefile.client Makefile.server | $(OBJDIR)
 
-$(DEPENDS): Makefile | $(DEPDIR)
+$(DEPENDS): Makefile Makefile.client Makefile.server | $(DEPDIR)
 
 $(OBJDIR):
 	@mkdir -p $@

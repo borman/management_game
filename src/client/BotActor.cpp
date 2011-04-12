@@ -71,7 +71,7 @@ void BotActor::callScripted(Session *session, const char *fun)
   }
   catch (const Executor::Exception &e)
   {
-    cout.printf("%s in executor ar %04zu\n", e.text(), e.addr());
+    cout.printf("%s in executor at %04zu\n", e.text(), e.addr());
     throw;
   }
 

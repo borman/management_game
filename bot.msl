@@ -42,6 +42,10 @@ end
 
 global AuctionRaw
 global AuctionProduct
+global Balances
+
+global NPlayers
+global ThisPlayer
 
 global PrevRawCount
 global PrevRawPrice
@@ -52,14 +56,21 @@ global MyFutureFactories
 
 fun onStart []
   println "Game started"
-  AuctionRaw = array nPlayers[]
-  AuctionProduct = array nPlayers[]
+  ; Game-wise constants
+  NPlayers = nPlayers[]
+  ThisPlayer = thisPlayer[]
+  ; Local arrays
+  AuctionRaw = array NPlayers
+  AuctionProduct = array NPlayers
+  Balances = array NPlayers
+  ; Track factories being built
   [MyFutureFactories] = player [thisPlayer[], ["Factories"]]
 end
 
 fun onTurn []
-  NPlayers = nPlayers []
   NTransactions = nTransactions []
+
+  ;====================== Header ==========================
 
   ; Print state
   println [NPlayers, "players in game"]
@@ -70,15 +81,31 @@ fun onTurn []
     end
   end
   println ["Market:", marketState []]
-  println ["It's me:", player [thisPlayer [], ["Name", "Balance", "Raw", "Product", "Factories"]]]
+  println ["It's me:", player [ThisPlayer, ["Name", "Balance", "Raw", "Product", "Factories"]]]
+
+  ;====================== Game logic ==========================
 
   ; Get market state
   [RawCount, RawPrice, ProductCount, ProductPrice] = marketState []
 
   ; My status
   [MyBalance, MyRaw, MyProduct, MyFactories] = 
-    player [thisPlayer[], ["Balance", "Raw", "Product", "Factories"]]
+    player [ThisPlayer, ["Balance", "Raw", "Product", "Factories"]]
 
+  ; Fetch balances
+  NAlive = 0 
+  NRicher = 0 ; have more money
+  for I from 1 to NPlayers do
+    [Alive, $Balances(I)] = player [I, ["Alive", "Balance"]]
+    if not Alive then 
+      $Balances(I) = 0 
+    end else
+      NAlive = NAlive + 1
+      if $Balances(I) > MyBalance then
+        NRicher = NRicher + 1
+      end
+    end
+  end
 
   ; Check auctions
   for I from 1 to NPlayers do
@@ -91,9 +118,15 @@ fun onTurn []
     if Type = "AuctionProduct" then $AuctionProduct(Player) = Price-PrevProductPrice end
   end
 
-  ; Best +/- 1
-  ThisRawPrice = (arrayMin AuctionRaw) + 1 + RawPrice
-  ThisProductPrice = (arrayMin AuctionProduct) - 1 + ProductPrice
+  ; Act aggressively when balance is low
+  DumpingRate = 1
+  if NRicher > 0.5*NAlive then
+    DumpingRate = 10
+  end
+
+  ; Best +/- DumpingRate
+  ThisRawPrice = (arrayMin AuctionRaw) + DumpingRate + RawPrice
+  ThisProductPrice = (arrayMin AuctionProduct) - DumpingRate + ProductPrice
 
   ThisRawCount = max [MyFactories-MyRaw, 0]
   ThisProductCount = min [MyProduct, ProductCount]

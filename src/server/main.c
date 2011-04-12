@@ -160,7 +160,7 @@ static void terminate_handler(int sig)
 
 static void sigpipe_handler(int sig)
 {
-  warning("SIGPIPE has arrived");
+  /* warning("SIGPIPE has arrived"); */
   signal(sig, sigpipe_handler);
 }
 

@@ -60,6 +60,8 @@ static const struct MarketState market_states[N_MARKET_STATES] =
   {{3.0, 300}, {1.0, 4500}}
 };
 
+static void track_players(ServerData *d);
+
 /* Financial operations */
 static void do_finances(ServerData *d);
 static void do_expenses(ServerData *d);
@@ -112,6 +114,7 @@ void game_start_round(ServerData *d)
       "market %u %u %u %u",
       d->market_state.raw.count, d->market_state.raw.price,
       d->market_state.product.count, d->market_state.product.price);
+  track_players(d);
   server_send_broadcast(d, CL_PLAYER,
       "round start %u", 
       d->round_counter);
@@ -226,6 +229,19 @@ const char *game_request_build(ServerData *d, ClientData *client, count_t count)
   return NULL;
 }
 
+
+static void track_players(ServerData *d)
+{
+  FOREACH(ClientData *, client, d->clients)
+  {
+    if (client_in_game(client))
+      server_send_broadcast(d, CL_PLAYER,
+          "player \"%s\" %d %d %d %d", 
+          client->name,
+          client->gcs.money, client->gcs.factories,
+          client->gcs.raw, client->gcs.product);
+  } FOREACH_END;
+}
 
 static int compare_price(price_t a, price_t b)
 {

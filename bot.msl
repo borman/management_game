@@ -140,9 +140,9 @@ fun onTurn []
   ; Perform commands
   check buy [ThisRawCount, ThisRawPrice]
   check sell [ThisProductCount, ThisProductPrice]
-  check produce 2
+  check produce MyFactories
 
-  if MyBalance > MyFutureFactories*25000 then
+  if MyBalance > MyFutureFactories*MyFutureFactories*30000 then
     check build 1
     MyFutureFactories = MyFutureFactories+1
   end
